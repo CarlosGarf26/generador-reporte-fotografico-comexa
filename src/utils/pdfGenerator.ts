@@ -180,7 +180,7 @@ export const generateReportPDF = async (
     // --- FORMAT B: VIDEO EXTRACTION (CITI) ---
     // ==========================================
     const citiLogoPng = await svgToPngDataUrl(CITI_SVG_MARKUP, 200, 120);
-    const totalPages = 1 + Math.max(1, Math.ceil(images.length / 3));
+    const totalPages = 1 + Math.max(1, Math.ceil(images.length / 4));
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
       if (pageIdx > 0) {
@@ -310,25 +310,27 @@ export const generateReportPDF = async (
         doc.setLineWidth(0.4);
         doc.line(12, 26, 203.9, 26);
 
-        // Slice up to 3 images for this evidence page
-        const currentImages = images.slice((pageIdx - 1) * 3, pageIdx * 3);
+        // Slice up to 4 images for this evidence page
+        const currentImages = images.slice((pageIdx - 1) * 4, pageIdx * 4);
 
-        for (let imgIdx = 0; imgIdx < 3; imgIdx++) {
+        for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
           const image = currentImages[imgIdx];
           if (!image) continue;
 
-          // Determine cell coordinates (Row 1 has 2 cols, Row 2 has 1 centered col)
+          // Determine cell coordinates (2x2 Grid)
           let cellX = 12;
           let cellY = 32;
           if (imgIdx === 1) {
             cellX = 111.9;
           } else if (imgIdx === 2) {
-            cellX = 61.95; // Centered
-            cellY = 113;
+            cellY = 142;
+          } else if (imgIdx === 3) {
+            cellX = 111.9;
+            cellY = 142;
           }
 
           const cellW = 92;
-          const cellH = 69;
+          const cellH = 100;
 
           // Draw border around cell
           doc.setDrawColor(203, 213, 225);

@@ -230,8 +230,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
       );
     } else {
       // --- EVIDENCE PAGES (pageIndex > 0) ---
-      // For Page 1 of evidence, images slice from indices 0,1,2. Page 2: 3,4,5 etc.
-      const imageSlots = [0, 1, 2];
+      const imageSlots = [0, 1, 2, 3];
 
       return (
         <div
@@ -266,161 +265,87 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
             )}
           </div>
 
-          {/* 2. 3-Image Layout Area (2 on Top Row, 1 Centered on Bottom Row) */}
-          <div className="flex-1 my-6 flex flex-col justify-between z-10">
-            {/* Row 1 (2 Columns for slot 1 & 2) */}
-            <div className="grid grid-cols-2 gap-4 h-[94mm]">
-              {[0, 1].map((slotIdx) => {
-                const img = images[slotIdx];
-                const hasImage = !!img;
+          {/* 2. 4-Image Layout Area (2x2 Grid) */}
+          <div className="flex-1 my-6 grid grid-cols-2 grid-rows-2 gap-4 z-10 overflow-hidden"
+               style={{ maxHeight: "205mm" }}
+          >
+            {imageSlots.map((slotIdx) => {
+              const img = images[slotIdx];
+              const hasImage = !!img;
 
-                return (
-                  <div
-                    key={slotIdx}
-                    tabIndex={0}
-                    onPaste={(e) => handlePaste(e, slotIdx)}
-                    onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
-                    className="relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
-                  >
-                    {hasImage ? (
-                      <>
-                        <img
-                          src={img.url}
-                          alt={img.name}
-                          referrerPolicy="no-referrer"
-                          style={{ transform: `rotate(${img.rotation}deg)` }}
-                          className={`w-full h-full transition-transform ${
-                            img.fit === "contain" ? "object-contain p-1" : "object-cover"
-                          }`}
-                        />
-                        {/* Cell controls */}
-                        <div className="no-print absolute inset-0 bg-black/40 opacity-0 group-hover/cell:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-150 z-20">
-                          <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-xs max-w-[150px] truncate mb-1">
-                            {img.name}
-                          </span>
-                          <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => onCellImageRotate(img.id)}
-                              className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
-                              title="Rotar 90°"
-                            >
-                              <RotateCw className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onCellImageToggleFit(img.id)}
-                              className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
-                              title={img.fit === "contain" ? "Llenar espacio" : "Ajustar"}
-                            >
-                              {img.fit === "contain" ? (
-                                <Maximize2 className="w-4 h-4" />
-                              ) : (
-                                <Minimize2 className="w-4 h-4" />
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onCellImageDelete(img.id)}
-                              className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                              title="Quitar"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+              return (
+                <div
+                  key={slotIdx}
+                  tabIndex={0}
+                  onPaste={(e) => handlePaste(e, slotIdx)}
+                  onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
+                  className="relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+                >
+                  {hasImage ? (
+                    <>
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        referrerPolicy="no-referrer"
+                        style={{ transform: `rotate(${img.rotation}deg)` }}
+                        className={`w-full h-full transition-transform ${
+                          img.fit === "contain" ? "object-contain p-1" : "object-cover"
+                        }`}
+                      />
+                      {/* Cell controls */}
+                      <div className="no-print absolute inset-0 bg-black/40 opacity-0 group-hover/cell:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-150 z-20">
+                        <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-xs max-w-[150px] truncate mb-1">
+                          {img.name}
+                        </span>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onCellImageRotate(img.id)}
+                            className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
+                            title="Rotar 90°"
+                          >
+                            <RotateCw className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCellImageToggleFit(img.id)}
+                            className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
+                            title={img.fit === "contain" ? "Llenar espacio" : "Ajustar"}
+                          >
+                            {img.fit === "contain" ? (
+                              <Maximize2 className="w-4 h-4" />
+                            ) : (
+                              <Minimize2 className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCellImageDelete(img.id)}
+                            className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                            title="Quitar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => onCellUploadClick(pageIndex, slotIdx)}
-                        className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full"
-                      >
-                        <Upload className="w-6 h-6 stroke-1.5" />
-                        <span className="text-[10px] font-bold">Clic para insertar foto</span>
-                        <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
-                      </button>
-                    )}
-                    <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
-                      Celda {slotIdx + 1}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-             {/* Row 2 (1 Column, centered, for slot 3) */}
-            <div className="flex justify-center h-[94mm] mt-4">
-              <div
-                tabIndex={0}
-                onPaste={(e) => handlePaste(e, 2)}
-                onKeyDown={(e) => handleKeyDown(e, 2, !!images[2])}
-                className="w-[100mm] relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
-              >
-                {images[2] ? (
-                  <>
-                    <img
-                      src={images[2].url}
-                      alt={images[2].name}
-                      referrerPolicy="no-referrer"
-                      style={{ transform: `rotate(${images[2].rotation}deg)` }}
-                      className={`w-full h-full transition-transform ${
-                        images[2].fit === "contain" ? "object-contain p-1" : "object-cover"
-                      }`}
-                    />
-                    {/* Cell controls */}
-                    <div className="no-print absolute inset-0 bg-black/40 opacity-0 group-hover/cell:opacity-100 flex flex-col items-center justify-center gap-2 transition-all duration-150 z-20">
-                      <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-0.5 rounded-full backdrop-blur-xs max-w-[150px] truncate mb-1">
-                        {images[2].name}
-                      </span>
-                      <div className="flex gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => onCellImageRotate(images[2].id)}
-                          className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
-                          title="Rotar 90°"
-                        >
-                          <RotateCw className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onCellImageToggleFit(images[2].id)}
-                          className="p-1.5 bg-white text-gray-800 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-colors shadow-sm"
-                          title={images[2].fit === "contain" ? "Llenar espacio" : "Ajustar"}
-                        >
-                          {images[2].fit === "contain" ? (
-                            <Maximize2 className="w-4 h-4" />
-                          ) : (
-                            <Minimize2 className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onCellImageDelete(images[2].id)}
-                          className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                          title="Quitar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onCellUploadClick(pageIndex, 2)}
-                    className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full"
-                  >
-                    <Upload className="w-6 h-6 stroke-1.5" />
-                    <span className="text-[10px] font-bold">Clic para insertar foto</span>
-                    <span className="text-[8px] text-gray-400">Celda 3 de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
-                  </button>
-                )}
-                <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
-                  Celda 3 (Centrada)
-                </span>
-              </div>
-            </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onCellUploadClick(pageIndex, slotIdx)}
+                      className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full"
+                    >
+                      <Upload className="w-6 h-6 stroke-1.5" />
+                      <span className="text-[10px] font-bold">Clic para insertar foto</span>
+                      <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
+                    </button>
+                  )}
+                  <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
+                    Celda {slotIdx + 1}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* 3. Footer (Logo and Page number) */}

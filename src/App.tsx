@@ -159,9 +159,9 @@ export default function App() {
   // --- AUTOMATIC SUBHEADER GENERATION ---
   // Create / update page subheader configurations whenever images count or metadata changes
   const isVideo = metadata.reportType === "extraccion_video";
-  const pageSize = isVideo ? 3 : 4;
+  const pageSize = 4;
   const totalPages = isVideo
-    ? 1 + Math.max(1, Math.ceil(images.length / 3))
+    ? 1 + Math.max(1, Math.ceil(images.length / 4))
     : Math.max(1, Math.ceil(images.length / 4));
 
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function App() {
 
       const isVideo = metadata.reportType === "extraccion_video";
       const targetIdx = isVideo
-        ? (pageIndex - 1) * 3 + slotIdx
+        ? (pageIndex - 1) * 4 + slotIdx
         : pageIndex * 4 + slotIdx;
       setImages((prev) => {
         const updated = [...prev];
@@ -771,7 +771,7 @@ export default function App() {
                         totalPages={totalPages}
                         metadata={metadata}
                         footer={footer}
-                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 3, pageIdx * 3)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 4, pageIdx * 4)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
                         pageConfig={currentConfig}
                         onUpdatePageConfig={handleUpdatePageConfig}
                         onCellImageRotate={handleRotateImage}
@@ -807,7 +807,7 @@ export default function App() {
               totalPages={totalPages}
               metadata={metadata}
               footer={footer}
-              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 3, pageIdx * 3)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 4, pageIdx * 4)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
               pageConfig={currentConfig}
               onUpdatePageConfig={handleUpdatePageConfig}
               onCellImageRotate={handleRotateImage}
