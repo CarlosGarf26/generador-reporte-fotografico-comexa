@@ -171,3 +171,39 @@ export const ComexaWatermark: React.FC<{ className?: string }> = ({
     </div>
   );
 };
+
+export const CitiLogo: React.FC<{ className?: string; color?: string }> = ({
+  className = "h-8",
+  color = "#002D62",
+}) => {
+  return (
+    <div className={`flex items-center gap-1 ${className} select-none`}>
+      <svg
+        viewBox="0 0 100 60"
+        className="h-full w-auto flex-shrink-0"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Red arch representing the Citi umbrella/arch */}
+        <path
+          d="M 12 28 C 30 11, 70 11, 88 28 C 81 23, 66 18, 50 18 C 34 18, 19 23, 12 28 Z"
+          fill="#ED1C24"
+        />
+        {/* Lowercase 'citi' logo text */}
+        <text
+          x="50"
+          y="49"
+          textAnchor="middle"
+          fill={color}
+          fontSize="29"
+          fontWeight="900"
+          fontFamily='"Inter", "Arial Black", sans-serif'
+          letterSpacing="-1.5"
+        >
+          citi
+        </text>
+      </svg>
+    </div>
+  );
+};
+

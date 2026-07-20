@@ -1,8 +1,14 @@
+export type ReportType = "fotografico" | "extraccion_video";
+
 export interface ReportMetadata {
   sucursal: string;
   cc: string;
   fechaInventario: string;
   tipoTrabajo: string;
+  // Specific properties for Extracción de Video
+  reportType?: ReportType;
+  incidenteTask?: string;
+  tecnicoAtiende?: string;
 }
 
 export interface ReportFooter {

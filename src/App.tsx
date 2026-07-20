@@ -97,8 +97,11 @@ export default function App() {
 
   // --- AUTOMATIC SUBHEADER GENERATION ---
   // Create / update page subheader configurations whenever images count or metadata changes
-  const pageSize = 4;
-  const totalPages = Math.max(1, Math.ceil(images.length / pageSize));
+  const isVideo = metadata.reportType === "extraccion_video";
+  const pageSize = isVideo ? 3 : 4;
+  const totalPages = isVideo
+    ? 1 + Math.max(1, Math.ceil(images.length / 3))
+    : Math.max(1, Math.ceil(images.length / 4));
 
   useEffect(() => {
     setPageConfigs((prev) => {
@@ -110,14 +113,16 @@ export default function App() {
         } else {
           updated.push({
             pageIndex: i,
-            subHeader: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
+            subHeader: isVideo
+              ? (i === 0 ? "Regional Command Center" : "Evidencia de equipos Nvr´s")
+              : `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
             showSubHeader: true,
           });
         }
       }
       return updated;
     });
-  }, [totalPages, metadata.tipoTrabajo, metadata.fechaInventario]);
+  }, [totalPages, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType]);
 
   // --- HANDLERS ---
   const handleBulkUploadClick = () => {
@@ -172,7 +177,10 @@ export default function App() {
         fit: "contain",
       };
 
-      const targetIdx = target.pageIndex * 4 + target.slotIdx;
+      const isVideo = metadata.reportType === "extraccion_video";
+      const targetIdx = isVideo
+        ? (target.pageIndex - 1) * 3 + target.slotIdx
+        : target.pageIndex * 4 + target.slotIdx;
       setImages((prev) => {
         const updated = [...prev];
         if (targetIdx < updated.length) {
@@ -345,7 +353,10 @@ export default function App() {
 
       setPdfProgress(100);
       // Clean up sucursal name for file name
-      const cleanName = `${metadata.tipoTrabajo.toLowerCase()}_${metadata.sucursal.toLowerCase()}_${metadata.cc}.pdf`.replace(/\s+/g, "_");
+      const isVideo = metadata.reportType === "extraccion_video";
+      const cleanName = isVideo
+        ? `extraccion_video_${metadata.sucursal.toLowerCase()}_${(metadata.incidenteTask || "sctask").toLowerCase()}.pdf`.replace(/\s+/g, "_")
+        : `${metadata.tipoTrabajo.toLowerCase()}_${metadata.sucursal.toLowerCase()}_${metadata.cc}.pdf`.replace(/\s+/g, "_");
       doc.save(cleanName);
     } catch (err) {
       console.error(err);
@@ -695,7 +706,7 @@ export default function App() {
                         totalPages={totalPages}
                         metadata={metadata}
                         footer={footer}
-                        images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 3, pageIdx * 3)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
                         pageConfig={currentConfig}
                         onUpdatePageConfig={handleUpdatePageConfig}
                         onCellImageRotate={handleRotateImage}
@@ -730,7 +741,7 @@ export default function App() {
               totalPages={totalPages}
               metadata={metadata}
               footer={footer}
-              images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 3, pageIdx * 3)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
               pageConfig={currentConfig}
               onUpdatePageConfig={handleUpdatePageConfig}
               onCellImageRotate={handleRotateImage}
