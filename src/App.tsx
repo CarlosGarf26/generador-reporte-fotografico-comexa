@@ -89,11 +89,72 @@ export default function App() {
   const [viewMode, setViewMode] = useState<"edit" | "print">("edit");
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfProgress, setPdfProgress] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
   // Hidden file inputs refs
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
   const cellFileInputRef = useRef<HTMLInputElement>(null);
   const targetCellRef = useRef<{ pageIndex: number; slotIdx: number } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" = "success") => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  // --- CLIPBOARD GLOBAL PASTE SUPPORT (TELEGRAM, SNIPPING TOOL, ETC) ---
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      // If user is editing a text field, let paste go through normally
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf("image") !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            const dateStr = new Date().toLocaleTimeString().replace(/:/g, "-");
+            const newFile = new File([file], `Pegado_Telegram_${dateStr}.png`, {
+              type: file.type,
+            });
+            imageFiles.push(newFile);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        processAndAddFiles(imageFiles);
+        showToast(
+          `Se pegó ${imageFiles.length === 1 ? "1 imagen" : `${imageFiles.length} imágenes`} desde el portapapeles`
+        );
+      }
+    };
+
+    window.addEventListener("paste", handleGlobalPaste);
+    return () => {
+      window.removeEventListener("paste", handleGlobalPaste);
+    };
+  }, [images]);
 
   // --- AUTOMATIC SUBHEADER GENERATION ---
   // Create / update page subheader configurations whenever images count or metadata changes
@@ -154,18 +215,7 @@ export default function App() {
     });
   };
 
-  // Uploading directly from an empty preview slot cell
-  const handleCellUploadClick = (pageIndex: number, slotIdx: number) => {
-    targetCellRef.current = { pageIndex, slotIdx };
-    cellFileInputRef.current?.click();
-  };
-
-  const handleCellFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    const target = targetCellRef.current;
-    if (!files || files.length === 0 || !target) return;
-
-    const file = files[0];
+  const handleInsertImageAtCell = (file: File, pageIndex: number, slotIdx: number) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const newImg: ReportImage = {
@@ -179,8 +229,8 @@ export default function App() {
 
       const isVideo = metadata.reportType === "extraccion_video";
       const targetIdx = isVideo
-        ? (target.pageIndex - 1) * 3 + target.slotIdx
-        : target.pageIndex * 4 + target.slotIdx;
+        ? (pageIndex - 1) * 3 + slotIdx
+        : pageIndex * 4 + slotIdx;
       setImages((prev) => {
         const updated = [...prev];
         if (targetIdx < updated.length) {
@@ -203,8 +253,23 @@ export default function App() {
         }
         return updated;
       });
+      showToast(`Imagen agregada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
     };
     reader.readAsDataURL(file);
+  };
+
+  // Uploading directly from an empty preview slot cell
+  const handleCellUploadClick = (pageIndex: number, slotIdx: number) => {
+    targetCellRef.current = { pageIndex, slotIdx };
+    cellFileInputRef.current?.click();
+  };
+
+  const handleCellFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    const target = targetCellRef.current;
+    if (!files || files.length === 0 || !target) return;
+
+    handleInsertImageAtCell(files[0], target.pageIndex, target.slotIdx);
     e.target.value = ""; // Reset
     targetCellRef.current = null;
   };
@@ -713,6 +778,7 @@ export default function App() {
                         onCellImageToggleFit={handleToggleFit}
                         onCellImageDelete={handleDeleteImage}
                         onCellUploadClick={handleCellUploadClick}
+                        onCellImagePaste={handleInsertImageAtCell}
                       />
                     </div>
                   );
@@ -748,10 +814,19 @@ export default function App() {
               onCellImageToggleFit={handleToggleFit}
               onCellImageDelete={handleDeleteImage}
               onCellUploadClick={handleCellUploadClick}
+              onCellImagePaste={handleInsertImageAtCell}
             />
           );
         })}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg border border-slate-700 flex items-center gap-2 animate-bounce">
+          <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+          <span>{toast.message}</span>
+        </div>
+      )}
 
       {/* Hidden Cell upload element triggered programmatically */}
       <input

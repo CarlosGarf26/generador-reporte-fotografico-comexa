@@ -15,6 +15,7 @@ interface PagePreviewSheetProps {
   onCellImageToggleFit: (imageId: string) => void;
   onCellImageDelete: (imageId: string) => void;
   onCellUploadClick: (pageIdx: number, slotIdx: number) => void;
+  onCellImagePaste?: (file: File, pageIndex: number, slotIdx: number) => void;
 }
 
 export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
@@ -29,8 +30,34 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
   onCellImageToggleFit,
   onCellImageDelete,
   onCellUploadClick,
+  onCellImagePaste,
 }) => {
   const isVideoReport = metadata.reportType === "extraccion_video";
+
+  const handlePaste = (e: React.ClipboardEvent, slotIdx: number) => {
+    if (!onCellImagePaste) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          e.stopPropagation();
+          onCellImagePaste(file, pageIndex, slotIdx);
+          break;
+        }
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, slotIdx: number, hasImage: boolean) => {
+    if ((e.key === "Enter" || e.key === " ") && !hasImage) {
+      e.preventDefault();
+      onCellUploadClick(pageIndex, slotIdx);
+    }
+  };
 
   // --- RENDERING FORMAT B: VIDEO EXTRACTION (CITI / CSIS) ---
   if (isVideoReport) {
@@ -250,7 +277,10 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                 return (
                   <div
                     key={slotIdx}
-                    className="relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs"
+                    tabIndex={0}
+                    onPaste={(e) => handlePaste(e, slotIdx)}
+                    onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
+                    className="relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
                   >
                     {hasImage ? (
                       <>
@@ -308,7 +338,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                       >
                         <Upload className="w-6 h-6 stroke-1.5" />
                         <span className="text-[10px] font-bold">Clic para insertar foto</span>
-                        <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1}</span>
+                        <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
                       </button>
                     )}
                     <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
@@ -319,9 +349,14 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
               })}
             </div>
 
-            {/* Row 2 (1 Column, centered, for slot 3) */}
+             {/* Row 2 (1 Column, centered, for slot 3) */}
             <div className="flex justify-center h-[94mm] mt-4">
-              <div className="w-[100mm] relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs">
+              <div
+                tabIndex={0}
+                onPaste={(e) => handlePaste(e, 2)}
+                onKeyDown={(e) => handleKeyDown(e, 2, !!images[2])}
+                className="w-[100mm] relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+              >
                 {images[2] ? (
                   <>
                     <img
@@ -378,7 +413,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                   >
                     <Upload className="w-6 h-6 stroke-1.5" />
                     <span className="text-[10px] font-bold">Clic para insertar foto</span>
-                    <span className="text-[8px] text-gray-400">Celda 3 de la Pág. {pageIndex + 1}</span>
+                    <span className="text-[8px] text-gray-400">Celda 3 de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
                   </button>
                 )}
                 <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
@@ -478,7 +513,10 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
           return (
             <div
               key={slotIdx}
-              className={`relative flex items-center justify-center border border-black overflow-hidden bg-white/10 group/cell z-10`}
+              tabIndex={0}
+              onPaste={(e) => handlePaste(e, slotIdx)}
+              onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
+              className={`relative flex items-center justify-center border border-black overflow-hidden bg-white/10 group/cell z-10 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all`}
             >
               {hasImage ? (
                 <>
@@ -545,7 +583,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                 >
                   <Upload className="w-6 h-6 stroke-1.5" />
                   <span className="text-[10px] font-semibold">Clic para insertar foto</span>
-                  <span className="text-[8px] text-gray-400">Slot {slotIdx + 1} de la Pág. {pageIndex + 1}</span>
+                  <span className="text-[8px] text-gray-400">Slot {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
                 </button>
               )}
 
