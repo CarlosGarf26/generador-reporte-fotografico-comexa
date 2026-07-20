@@ -1,0 +1,6 @@
+{
+  "name": "Generador de Reporte Fotográfico",
+  "description": "Herramienta profesional para organizar, ajustar y exportar fotos de mantenimiento a reportes fotográficos en formato PDF con diseño institucional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
