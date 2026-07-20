@@ -3,22 +3,49 @@ import { ReportMetadata, ReportFooter, ReportImage, PageConfig } from "../types"
 
 // SVG Markups as strings for rendering to canvas
 const SANTANDER_SVG_MARKUP = `
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <path d="M50 95C74.8528 95 95 74.8528 95 50C95 25.1472 74.8528 5 50 5C25.1472 5 5 25.1472 5 50C5 74.8528 25.1472 95 50 95Z" fill="#EC0000"/>
-  <path d="M48.5 22C48.5 22 55 28 58 36C61 44 59.5 54 53 59C46.5 64 36 62 31.5 54C27 46 29 34 35 28C35 28 32 32 32 38C32 44 36 49 41.5 50C47 51 51.5 47 52.5 41C53.5 35 48.5 22 48.5 22Z" fill="white"/>
-  <path d="M54.5 32C54.5 32 60 37 62 44C64 51 61.5 59 55.5 63C49.5 67 40 65 36.5 58C36.5 58 39 61 44 61C49 61 53 57 54.5 51C56 45 54.5 32 54.5 32Z" fill="white" opacity="0.85"/>
-  <path d="M62 45C62 45 66 49 67 54C68 59 66 65 61.5 68C57 71 50 69 47.5 64C47.5 64 50 66 54 65C58 64 61 60 61.5 55C62 50 62 45 62 45Z" fill="white" opacity="0.7"/>
+<svg viewBox="20 15 60 60" xmlns="http://www.w3.org/2000/svg">
+  <path d="M48.5 22C48.5 22 55 28 58 36C61 44 59.5 54 53 59C46.5 64 36 62 31.5 54C27 46 29 34 35 28C35 28 32 32 32 38C32 44 36 49 41.5 50C47 51 51.5 47 52.5 41C53.5 35 48.5 22 48.5 22Z" fill="#EC0000"/>
+  <path d="M54.5 32C54.5 32 60 37 62 44C64 51 61.5 59 55.5 63C49.5 67 40 65 36.5 58C36.5 58 39 61 44 61C49 61 53 57 54.5 51C56 45 54.5 32 54.5 32Z" fill="#EC0000" opacity="0.85"/>
+  <path d="M62 45C62 45 66 49 67 54C68 59 66 65 61.5 68C57 71 50 69 47.5 64C47.5 64 50 66 54 65C58 64 61 60 61.5 55C62 50 62 45 62 45Z" fill="#EC0000" opacity="0.7"/>
 </svg>
 `;
 
 const COMEXA_SVG_MARKUP = `
-<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-  <path d="M60 10L100 25V65C100 90 80 110 60 115C40 110 20 95 20 65V25L60 10Z" fill="#0C2340" stroke="#F2A900" stroke-width="3" />
-  <path d="M60 10L20 25V65C20 95 40 110 60 115V10Z" fill="#F2A900" opacity="0.15" />
-  <path d="M60 25L70 45H85L72 55L77 75L60 62L43 75L48 55L35 45H50L60 25Z" fill="#F2A900" />
-  <circle cx="60" cy="51" r="10" fill="#0C2340" stroke="#F2A900" stroke-width="2" />
-  <path d="M45 82H75V88H45V82Z" fill="#F2A900" />
-  <text x="60" y="103" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="bold" font-family="sans-serif">COMEXA</text>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect x="15" y="10" width="70" height="60" fill="#000000" />
+  <g stroke="#FFFFFF" stroke-width="2">
+    <line x1="15" y1="14" x2="85" y2="14" />
+    <line x1="15" y1="18" x2="85" y2="18" />
+    <line x1="15" y1="22" x2="85" y2="22" />
+    <line x1="15" y1="26" x2="85" y2="26" />
+    <line x1="15" y1="30" x2="85" y2="30" />
+    <line x1="15" y1="34" x2="85" y2="34" />
+    <line x1="15" y1="38" x2="85" y2="38" />
+    <line x1="15" y1="42" x2="85" y2="42" />
+    <line x1="15" y1="46" x2="85" y2="46" />
+    <line x1="15" y1="50" x2="85" y2="50" />
+    <line x1="15" y1="54" x2="85" y2="54" />
+    <line x1="15" y1="58" x2="85" y2="58" />
+    <line x1="15" y1="62" x2="85" y2="62" />
+    <line x1="15" y1="66" x2="85" y2="66" />
+  </g>
+  <path
+    d="M 20 62 C 20 54, 25 45, 30 40 C 33 37, 36 36, 40 36 C 45 36, 49 38, 54 38 C 62 38, 71 35, 75 32 C 80 28, 83 23, 79 19 C 75 15, 68 17, 64 21 C 57 26, 55 29, 50 27 C 46 25, 49 19, 52 13 C 55 7, 50 3, 44 6 C 39 9, 38 16, 39 21 C 35 17, 31 13, 25 11 C 19 9, 15 13, 19 17 C 22 20, 27 22, 31 24 C 27 26, 21 29, 15 33 C 10 37, 12 43, 18 41 C 23 39, 29 35, 33 33 C 29 39, 25 47, 25 55 C 25 61, 28 66, 30 66 Z"
+    fill="#FFE500"
+  />
+  <text
+    x="50"
+    y="92"
+    text-anchor="middle"
+    fill="#009EE0"
+    font-size="17"
+    font-weight="950"
+    font-style="italic"
+    font-family="sans-serif"
+    letter-spacing="0.5"
+  >
+    COMEXA®
+  </text>
 </svg>
 `;
 
@@ -180,12 +207,12 @@ export const generateReportPDF = async (
     if (comexaLogoPng) {
       doc.addImage(comexaLogoPng, "PNG", marginX + 3, headerY + 1.5, 13, 13);
     }
-    doc.setTextColor(242, 169, 0); // Yellow/Amber
+    doc.setTextColor(255, 255, 255); // White for primary labels in dark bar
     doc.setFont("helvetica", "bold");
     doc.setFontSize(5);
     doc.text("INTEGRADORES Y DESARROLLADORES", marginX + 18, headerY + 4.5);
     doc.text("EN SISTEMAS ELECTRÓNICOS DE SEGURIDAD", marginX + 18, headerY + 6.5);
-    doc.setTextColor(240, 240, 240);
+    doc.setTextColor(0, 158, 224); // Cyan for the third line
     doc.setFont("helvetica", "normal");
     doc.setFontSize(4.5);
     doc.text("Alarmas, CCTV, Incendio, Control de Acceso", marginX + 18, headerY + 8.5);
@@ -209,7 +236,7 @@ export const generateReportPDF = async (
         9
       );
     }
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(236, 0, 0); // Authentic Red for Santander
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.text("Santander", marginX + contentWidth - 20, headerY + 9.5);
