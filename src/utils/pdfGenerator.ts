@@ -199,72 +199,83 @@ export const generateReportPDF = async (
 
       if (pageIdx === 0) {
         // --- COVER PAGE ---
-        // Top High-Tech Banner background
-        doc.setFillColor(10, 15, 29);
-        doc.rect(12, 15, 191.9, 110, "F");
+        if (metadata.coverImageUrl) {
+          try {
+            // Draw custom cover image banner if provided
+            doc.addImage(metadata.coverImageUrl, "JPEG", 12, 15, 191.9, 110, undefined, "FAST");
+          } catch {
+            // Fallback to solid background
+            doc.setFillColor(10, 15, 29);
+            doc.rect(12, 15, 191.9, 110, "F");
+          }
+        } else {
+          // Top High-Tech CSIS Banner background
+          doc.setFillColor(10, 15, 29);
+          doc.rect(12, 15, 191.9, 110, "F");
 
-        // Subtle background grid simulation
-        doc.setDrawColor(30, 41, 59);
-        doc.setLineWidth(0.15);
-        for (let x = 20; x < 200; x += 15) {
-          doc.line(x, 15, x, 125);
+          // Subtle background grid simulation
+          doc.setDrawColor(30, 41, 59);
+          doc.setLineWidth(0.15);
+          for (let x = 20; x < 200; x += 15) {
+            doc.line(x, 15, x, 125);
+          }
+          for (let y = 20; y < 125; y += 15) {
+            doc.line(12, y, 203.9, y);
+          }
+
+          // Concentric glow circles for the Globe
+          doc.setFillColor(14, 116, 144);
+          doc.circle(70, 70, 15, "F");
+          
+          doc.setFillColor(14, 165, 233);
+          doc.saveGraphicsState();
+          doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
+          doc.circle(70, 70, 22, "F");
+          doc.restoreGraphicsState();
+
+          // White globe outer ring
+          doc.setDrawColor(56, 189, 248);
+          doc.setLineWidth(0.6);
+          doc.circle(70, 70, 15, "S");
+
+          // Red belt around globe
+          doc.setFillColor(220, 38, 38);
+          doc.rect(48, 68, 44, 5, "F");
+
+          // "CSIS" text in white over red belt
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("CSIS", 70, 71.8, { align: "center" });
+
+          // Floating tech text / metrics
+          doc.setTextColor(148, 163, 184);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(5.5);
+          doc.text("COMEXA SECURITY OPERATIONS", 18, 23);
+
+          doc.setTextColor(52, 211, 153);
+          doc.text("● SYSTEM CONNECTED", 198, 23, { align: "right" });
+
+          doc.setTextColor(100, 116, 139);
+          doc.text("LATENCY: 12ms", 18, 118);
+          doc.text("CSIS LIVE LINK", 108, 118, { align: "center" });
+          doc.text("SECURE ACCESS ONLY", 198, 118, { align: "right" });
         }
-        for (let y = 20; y < 125; y += 15) {
-          doc.line(12, y, 203.9, y);
-        }
 
-        // Concentric glow circles for the Globe
-        doc.setFillColor(14, 116, 144);
-        doc.circle(70, 70, 15, "F");
-        
-        doc.setFillColor(14, 165, 233);
-        doc.saveGraphicsState();
-        doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
-        doc.circle(70, 70, 22, "F");
-        doc.restoreGraphicsState();
-
-        // White globe outer ring
-        doc.setDrawColor(56, 189, 248);
-        doc.setLineWidth(0.6);
-        doc.circle(70, 70, 15, "S");
-
-        // Red belt around globe
-        doc.setFillColor(220, 38, 38);
-        doc.rect(48, 68, 44, 5, "F");
-
-        // "CSIS" text in white over red belt
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text("CSIS", 70, 71.8, { align: "center" });
-
-        // Floating tech text / metrics
-        doc.setTextColor(148, 163, 184);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(5.5);
-        doc.text("COMEXA SECURITY OPERATIONS", 18, 23);
-
-        doc.setTextColor(52, 211, 153);
-        doc.text("● SYSTEM CONNECTED", 198, 23, { align: "right" });
-
-        doc.setTextColor(100, 116, 139);
-        doc.text("LATENCY: 12ms", 18, 118);
-        doc.text("CSIS LIVE LINK", 108, 118, { align: "center" });
-        doc.text("SECURE ACCESS ONLY", 198, 118, { align: "right" });
-
-        // --- Bottom Blue Gradient/Solid block ---
-        doc.setFillColor(0, 59, 112); // Deep premium corporate blue
+        // --- Bottom Cyan to Blue Gradient Block ---
+        doc.setFillColor(0, 114, 206); // Corporate Cyan-Blue
         doc.rect(12, 131, 191.9, 110, "F");
 
-        // "REGIONAL COMMAND CENTER"
+        // "Regional Command Center"
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(23);
-        doc.text("REGIONAL COMMAND CENTER", 22, 152);
+        doc.setFontSize(22);
+        doc.text("Regional Command Center", 22, 152);
 
         // Subtitle
         doc.setFontSize(10.5);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("helvetica", "normal");
         doc.text("Evidencia de extracciones de vídeo Dvr´s y Nvr´s)", 22, 160);
 
         // Divider
@@ -273,18 +284,17 @@ export const generateReportPDF = async (
         doc.line(22, 166, 193.9, 166);
 
         // Fields
-        doc.setFontSize(9.5);
+        doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(186, 230, 253); // Light sky blue label
+        doc.setTextColor(255, 255, 255);
         doc.text("Sucursal:", 22, 182);
         doc.text("Incidente / Task:", 22, 194);
-        doc.text("Técnico que atiende:", 22, 206);
+        doc.text("Tecnico que atiende:", 22, 206);
 
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 255, 255); // Solid white text values
-        doc.text(metadata.sucursal.toUpperCase(), 64, 182);
-        doc.text((metadata.incidenteTask || "SCTASK0000873273").toUpperCase(), 64, 194);
-        doc.text((metadata.tecnicoAtiende || "ALFONSO HERNANDEZ ESPARZA").toUpperCase(), 64, 206);
+        doc.text((metadata.sucursal || "4101 VALLE DE ARAGON").toUpperCase(), 68, 182);
+        doc.text((metadata.incidenteTask || "SCTASK0000883852 / REQ0000894862").toUpperCase(), 68, 194);
+        doc.text((metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA").toUpperCase(), 68, 206);
 
         // Footer with Citi logo
         if (citiLogoPng) {

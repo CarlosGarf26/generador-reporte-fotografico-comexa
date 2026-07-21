@@ -9,6 +9,7 @@ export interface ReportMetadata {
   reportType?: ReportType;
   incidenteTask?: string;
   tecnicoAtiende?: string;
+  coverImageUrl?: string;
 }
 
 export interface ReportFooter {

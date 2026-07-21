@@ -70,10 +70,12 @@ const DEMO_PHOTOS = [
 export default function App() {
   // --- STATE ---
   const [metadata, setMetadata] = useState<ReportMetadata>({
-    sucursal: "VILLAHERMOSA",
+    sucursal: "4101 VALLE DE ARAGON",
     cc: "0091",
     fechaInventario: "11/06/2026",
     tipoTrabajo: "MANTENIMIENTO",
+    incidenteTask: "SCTASK0000883852 / REQ0000894862",
+    tecnicoAtiende: "ERICK GABRIEL PEREZ ESPINOZA",
   });
 
   const [footer, setFooter] = useState<ReportFooter>({
@@ -322,6 +324,11 @@ export default function App() {
 
   const handleDeleteImage = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  const handleUpdateCoverImage = (url: string) => {
+    setMetadata((prev) => ({ ...prev, coverImageUrl: url }));
+    showToast("Imagen de portada actualizada con éxito");
   };
 
   const handleMoveImage = (index: number, direction: "left" | "right") => {
@@ -779,6 +786,7 @@ export default function App() {
                         onCellImageDelete={handleDeleteImage}
                         onCellUploadClick={handleCellUploadClick}
                         onCellImagePaste={handleInsertImageAtCell}
+                        onUpdateCoverImage={handleUpdateCoverImage}
                       />
                     </div>
                   );

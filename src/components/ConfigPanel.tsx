@@ -38,8 +38,9 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
       ...metadata,
       reportType: type,
       // Provide defaults if missing
-      incidenteTask: metadata.incidenteTask || "SCTASK0000873273",
-      tecnicoAtiende: metadata.tecnicoAtiende || "ALFONSO HERNANDEZ ESPARZA",
+      sucursal: metadata.sucursal === "VILLAHERMOSA" ? "4101 VALLE DE ARAGON" : metadata.sucursal,
+      incidenteTask: metadata.incidenteTask || "SCTASK0000883852 / REQ0000894862",
+      tecnicoAtiende: metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA",
     });
   };
 
