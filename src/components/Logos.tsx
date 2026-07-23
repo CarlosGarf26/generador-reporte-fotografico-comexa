@@ -1,41 +1,35 @@
 import React from "react";
 
-export const SantanderLogo: React.FC<{ className?: string; color?: string }> = ({
+export const SantanderLogo: React.FC<{ className?: string; color?: string; showText?: boolean }> = ({
   className = "h-8",
   color = "#EC0000",
+  showText = true,
 }) => {
   return (
-    <div className={`flex items-center gap-1.5 ${className}`}>
-      {/* Authentic Red Flame SVG representing Santander without circle background */}
+    <div className={`flex items-center gap-2 ${className} select-none`}>
+      {/* Official Santander Flame Emblem */}
       <svg
-        viewBox="20 15 60 60"
-        className="h-full w-auto"
+        viewBox="0 0 500 450"
+        className="h-full w-auto flex-shrink-0"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          d="M48.5 22C48.5 22 55 28 58 36C61 44 59.5 54 53 59C46.5 64 36 62 31.5 54C27 46 29 34 35 28C35 28 32 32 32 38C32 44 36 49 41.5 50C47 51 51.5 47 52.5 41C53.5 35 48.5 22 48.5 22Z"
-          fill={color}
-        />
-        <path
-          d="M54.5 32C54.5 32 60 37 62 44C64 51 61.5 59 55.5 63C49.5 67 40 65 36.5 58C36.5 58 39 61 44 61C49 61 53 57 54.5 51C56 45 54.5 32 54.5 32Z"
-          fill={color}
-          opacity="0.85"
-        />
-        <path
-          d="M62 45C62 45 66 49 67 54C68 59 66 65 61.5 68C57 71 50 69 47.5 64C47.5 64 50 66 54 65C58 64 61 60 61.5 55C62 50 62 45 62 45Z"
-          fill={color}
-          opacity="0.7"
-        />
+        <g fill={color}>
+          <path d="M 250 35 C 240 65, 232 105, 232 140 C 232 175, 245 205, 245 205 C 220 185, 198 150, 192 125 C 188 100, 192 75, 192 75 C 178 98, 168 128, 168 162 C 168 205, 188 238, 188 238 C 128 238, 60 272, 60 332 C 60 392, 145 432, 250 432 C 355 432, 440 392, 440 332 C 440 272, 372 238, 312 238 C 312 238, 328 212, 328 178 C 328 132, 292 80, 250 35 Z"/>
+        </g>
+        <g fill="#FFFFFF">
+          <path d="M 125 315 C 125 282, 172 260, 218 260 C 248 260, 262 278, 250 302 C 235 330, 185 365, 155 380 C 138 365, 125 342, 125 315 Z"/>
+          <path d="M 205 292 C 218 262, 242 238, 262 208 C 278 185, 282 162, 276 142 C 288 168, 288 200, 272 228 C 255 258, 228 285, 218 312 C 210 338, 222 362, 242 378 C 222 368, 202 342, 205 292 Z"/>
+        </g>
       </svg>
       
-      {/* Authentic text for "Santander" */}
-      <span 
-        className="font-sans font-bold tracking-tight text-lg sm:text-xl md:text-2xl transition-colors select-none"
-        style={{ color: color }}
-      >
-        Santander
-      </span>
+      {showText && (
+        <span 
+          className="font-sans font-bold tracking-tight text-white text-base sm:text-lg md:text-xl transition-colors select-none"
+        >
+          Santander
+        </span>
+      )}
     </div>
   );
 };
