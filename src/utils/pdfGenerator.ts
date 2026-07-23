@@ -184,7 +184,7 @@ export const generateReportPDF = async (
     // --- FORMAT B: VIDEO EXTRACTION (CITI) ---
     // ==========================================
     const citiLogoPng = await svgToPngDataUrl(CITI_SVG_MARKUP, 200, 120);
-    const totalPages = 1 + Math.max(1, Math.ceil(images.length / 4));
+    const totalPages = Math.max(1, Math.ceil(images.length / 4));
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
       if (pageIdx > 0) {
@@ -197,121 +197,112 @@ export const generateReportPDF = async (
 
       const pageConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
         pageIndex: pageIdx,
-        subHeader: pageIdx === 0 ? "Regional Command Center" : "Evidencia de equipos Nvr´s",
+        subHeader: "Evidencia de equipos Nvr´s",
         showSubHeader: true,
       };
 
       if (pageIdx === 0) {
-        // --- COVER PAGE ---
+        // --- COVER PAGE WITH 4 IMAGES ---
         if (metadata.coverImageUrl) {
           try {
-            // Draw custom cover image banner if provided
-            doc.addImage(metadata.coverImageUrl, "JPEG", 12, 15, 191.9, 110, undefined, "FAST");
+            doc.addImage(metadata.coverImageUrl, "JPEG", 12, 8, 191.9, 38, undefined, "FAST");
           } catch {
-            // Fallback to solid background
             doc.setFillColor(10, 15, 29);
-            doc.rect(12, 15, 191.9, 110, "F");
+            doc.rect(12, 8, 191.9, 38, "F");
           }
         } else {
-          // Top High-Tech CSIS Banner background
+          // Top CSIS Banner background
           doc.setFillColor(10, 15, 29);
-          doc.rect(12, 15, 191.9, 110, "F");
+          doc.rect(12, 8, 191.9, 38, "F");
 
-          // Subtle background grid simulation
-          doc.setDrawColor(30, 41, 59);
-          doc.setLineWidth(0.15);
-          for (let x = 20; x < 200; x += 15) {
-            doc.line(x, 15, x, 125);
-          }
-          for (let y = 20; y < 125; y += 15) {
-            doc.line(12, y, 203.9, y);
-          }
-
-          // Concentric glow circles for the Globe
+          // Tech graphics
           doc.setFillColor(14, 116, 144);
-          doc.circle(70, 70, 15, "F");
-          
-          doc.setFillColor(14, 165, 233);
-          doc.saveGraphicsState();
-          doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
-          doc.circle(70, 70, 22, "F");
-          doc.restoreGraphicsState();
-
-          // White globe outer ring
-          doc.setDrawColor(56, 189, 248);
-          doc.setLineWidth(0.6);
-          doc.circle(70, 70, 15, "S");
-
-          // Red belt around globe
+          doc.circle(40, 27, 8, "F");
           doc.setFillColor(220, 38, 38);
-          doc.rect(48, 68, 44, 5, "F");
+          doc.rect(28, 26, 24, 3, "F");
 
-          // "CSIS" text in white over red belt
           doc.setTextColor(255, 255, 255);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("CSIS", 70, 71.8, { align: "center" });
+          doc.setFontSize(12);
+          doc.text("CSIS — Regional Command Center", 60, 24);
 
-          // Floating tech text / metrics
           doc.setTextColor(148, 163, 184);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(5.5);
-          doc.text("COMEXA SECURITY OPERATIONS", 18, 23);
-
-          doc.setTextColor(52, 211, 153);
-          doc.text("● SYSTEM CONNECTED", 198, 23, { align: "right" });
-
-          doc.setTextColor(100, 116, 139);
-          doc.text("LATENCY: 12ms", 18, 118);
-          doc.text("CSIS LIVE LINK", 108, 118, { align: "center" });
-          doc.text("SECURE ACCESS ONLY", 198, 118, { align: "right" });
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.text("COMEXA SECURITY OPERATIONS • EVIDENCIA EN VÍDEO", 60, 31);
         }
 
-        // --- Bottom Cyan to Blue Gradient Block ---
-        doc.setFillColor(0, 114, 206); // Corporate Cyan-Blue
-        doc.rect(12, 131, 191.9, 110, "F");
+        // Cyan Metadata Box
+        doc.setFillColor(0, 114, 206);
+        doc.rect(12, 48, 191.9, 24, "F");
 
-        // "Regional Command Center"
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(22);
-        doc.text("Regional Command Center", 22, 152);
-
-        // Subtitle
-        doc.setFontSize(10.5);
+        doc.setFontSize(9);
+        doc.text("REGIONAL COMMAND CENTER", 16, 54);
         doc.setFont("helvetica", "normal");
-        doc.text("Evidencia de extracciones de vídeo Dvr´s y Nvr´s)", 22, 160);
+        doc.setFontSize(7.5);
+        doc.text("Evidencia de extracciones de vídeo Dvr´s y Nvr´s", 198, 54, { align: "right" });
 
-        // Divider
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(0.3);
-        doc.line(22, 166, 193.9, 166);
-
-        // Fields
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(255, 255, 255);
-        doc.text("Sucursal:", 22, 182);
-        doc.text("Incidente / Task:", 22, 194);
-        doc.text("Tecnico que atiende:", 22, 206);
-
+        doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
-        doc.text((metadata.sucursal || "4101 VALLE DE ARAGON").toUpperCase(), 68, 182);
-        doc.text((metadata.incidenteTask || "SCTASK0000883852 / REQ0000894862").toUpperCase(), 68, 194);
-        doc.text((metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA").toUpperCase(), 68, 206);
+        doc.text(`SUCURSAL: ${(metadata.sucursal || "4101 VALLE DE ARAGON").toUpperCase()}`, 16, 62);
+        doc.text(`TASK: ${(metadata.incidenteTask || "SCTASK0000883852").toUpperCase()}`, 16, 68);
+        doc.text(`TÉCNICO: ${(metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA").toUpperCase()}`, 110, 62);
 
-        // Footer with Citi logo
+        // Subheader
+        if (pageConfig.showSubHeader && pageConfig.subHeader) {
+          doc.setTextColor(0, 75, 135);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text((pageConfig.subHeader || "EVIDENCIA DE EQUIPOS").toUpperCase(), pageWidth / 2, 77, { align: "center" });
+        }
+
+        // Render up to 4 images for Page 0
+        const currentImages = images.slice(0, 4);
+        for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
+          const image = currentImages[imgIdx];
+          if (!image) continue;
+
+          let cellX = 12;
+          let cellY = 82;
+          if (imgIdx === 1) cellX = 111.9;
+          if (imgIdx === 2) cellY = 166;
+          if (imgIdx === 3) { cellX = 111.9; cellY = 166; }
+
+          const cellW = 92;
+          const cellH = 80;
+
+          doc.setDrawColor(203, 213, 225);
+          doc.setLineWidth(0.35);
+          doc.rect(cellX, cellY, cellW, cellH);
+
+          try {
+            const processedDataUrl = await processImageForCell(
+              image.url,
+              image.rotation,
+              image.fit,
+              800,
+              600
+            );
+
+            doc.addImage(processedDataUrl, "JPEG", cellX + 0.2, cellY + 0.2, cellW - 0.4, cellH - 0.4);
+          } catch (err) {
+            console.error("Error rendering image on video cover page PDF cell", err);
+          }
+        }
+
+        // Footer
         if (citiLogoPng) {
           doc.addImage(citiLogoPng, "PNG", 12, 252, 16, 9.6);
         }
-        doc.setTextColor(148, 163, 184);
+        doc.setTextColor(0, 91, 150);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
-        doc.text("PORTADA DE REPORTE — CONFIDENCIAL", 203.9, 258, { align: "right" });
+        doc.setFontSize(8.5);
+        doc.text(`PÁGINA ${pageIdx + 1} DE ${totalPages}`, 203.9, 258, { align: "right" });
 
       } else {
         // --- EVIDENCE PAGE (pageIdx > 0) ---
-        // Section Header Title
         if (pageConfig.showSubHeader && pageConfig.subHeader) {
           doc.setTextColor(0, 75, 135);
           doc.setFont("helvetica", "bold");
@@ -319,34 +310,26 @@ export const generateReportPDF = async (
           doc.text(pageConfig.subHeader.toUpperCase(), pageWidth / 2, 21, { align: "center" });
         }
 
-        // Grey underline below title
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.4);
         doc.line(12, 26, 203.9, 26);
 
-        // Slice up to 4 images for this evidence page
-        const currentImages = images.slice((pageIdx - 1) * 4, pageIdx * 4);
+        // Slice 4 images for pageIdx
+        const currentImages = images.slice(pageIdx * 4, (pageIdx + 1) * 4);
 
         for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
           const image = currentImages[imgIdx];
           if (!image) continue;
 
-          // Determine cell coordinates (2x2 Grid)
           let cellX = 12;
           let cellY = 32;
-          if (imgIdx === 1) {
-            cellX = 111.9;
-          } else if (imgIdx === 2) {
-            cellY = 142;
-          } else if (imgIdx === 3) {
-            cellX = 111.9;
-            cellY = 142;
-          }
+          if (imgIdx === 1) cellX = 111.9;
+          if (imgIdx === 2) cellY = 142;
+          if (imgIdx === 3) { cellX = 111.9; cellY = 142; }
 
           const cellW = 92;
           const cellH = 100;
 
-          // Draw border around cell
           doc.setDrawColor(203, 213, 225);
           doc.setLineWidth(0.35);
           doc.rect(cellX, cellY, cellW, cellH);
@@ -370,13 +353,9 @@ export const generateReportPDF = async (
             );
           } catch (err) {
             console.error("Error rendering image on video page PDF cell", err);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.text("Error al cargar imagen", cellX + 5, cellY + cellH / 2);
           }
         }
 
-        // Footer with Citi logo and page number
         if (citiLogoPng) {
           doc.addImage(citiLogoPng, "PNG", 12, 252, 16, 9.6);
         }

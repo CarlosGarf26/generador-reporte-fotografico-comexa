@@ -20,6 +20,7 @@ import {
   HelpCircle,
   FileCheck,
   Sparkles,
+  Layers,
   Info
 } from "lucide-react";
 
@@ -162,9 +163,7 @@ export default function App() {
   // Create / update page subheader configurations whenever images count or metadata changes
   const isVideo = metadata.reportType === "extraccion_video";
   const pageSize = 4;
-  const totalPages = isVideo
-    ? 1 + Math.max(1, Math.ceil(images.length / 4))
-    : Math.max(1, Math.ceil(images.length / 4));
+  const totalPages = Math.max(1, Math.ceil(images.length / 4));
 
   useEffect(() => {
     setPageConfigs((prev) => {
@@ -177,7 +176,7 @@ export default function App() {
           updated.push({
             pageIndex: i,
             subHeader: isVideo
-              ? (i === 0 ? "Regional Command Center" : "Evidencia de equipos Nvr´s")
+              ? "Evidencia de equipos Nvr´s"
               : `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
             showSubHeader: true,
           });
@@ -211,7 +210,7 @@ export default function App() {
           rotation: 0,
           fit: "contain",
         };
-        setImages((prev) => [...prev, newImg]);
+        setImages((prev) => [...prev.filter((img) => !img.isBlank), newImg]);
       };
       reader.readAsDataURL(file);
     });
@@ -229,33 +228,18 @@ export default function App() {
         fit: "contain",
       };
 
-      const isVideo = metadata.reportType === "extraccion_video";
-      const targetIdx = isVideo
-        ? (pageIndex - 1) * 4 + slotIdx
-        : pageIndex * 4 + slotIdx;
+      const targetIdx = pageIndex * 4 + slotIdx;
       setImages((prev) => {
-        const updated = [...prev];
+        const validImages = prev.filter((img) => !img.isBlank && img.url);
+        const updated = [...validImages];
         if (targetIdx < updated.length) {
-          // Replace
           updated[targetIdx] = newImg;
         } else {
-          // Append with blank spacers filling up to index
-          while (updated.length < targetIdx) {
-            updated.push({
-              id: Math.random().toString(36).substring(2, 9),
-              url: "",
-              name: "Espacio en blanco",
-              size: 0,
-              rotation: 0,
-              fit: "contain",
-              isBlank: true,
-            });
-          }
           updated.push(newImg);
         }
         return updated;
       });
-      showToast(`Imagen agregada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
+      showToast(`Imagen colocada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
     };
     reader.readAsDataURL(file);
   };
@@ -323,7 +307,13 @@ export default function App() {
   };
 
   const handleDeleteImage = (id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id));
+    setImages((prev) => prev.filter((img) => img.id !== id && !img.isBlank));
+    showToast("Imagen eliminada y lista de evidencias recorrida");
+  };
+
+  const handleCompactImages = () => {
+    setImages((prev) => prev.filter((img) => !img.isBlank && !!img.url));
+    showToast("Imágenes recorridas y espacios en blanco eliminados");
   };
 
   const handleUpdateCoverImage = (url: string) => {
@@ -552,14 +542,14 @@ export default function App() {
                     <RotateCw className="w-3.5 h-3.5 text-gray-500" /> Rotar Todas 90°
                   </button>
 
-                  {/* Add blank spacer */}
+                  {/* Compact / Shift Images */}
                   <button
                     type="button"
-                    onClick={handleInsertSpacer}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-gray-200 hover:border-gray-300 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
-                    title="Inserta un cuadro vacío para estructurar las hojas"
+                    onClick={handleCompactImages}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 hover:border-indigo-300 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
+                    title="Elimina espacios vacíos y recorre las imágenes de forma continua"
                   >
-                    <Plus className="w-3.5 h-3.5 text-gray-500" /> Añadir Espacio
+                    <Layers className="w-3.5 h-3.5 text-indigo-600" /> Recorrer Fotos
                   </button>
                 </div>
 
@@ -778,7 +768,7 @@ export default function App() {
                         totalPages={totalPages}
                         metadata={metadata}
                         footer={footer}
-                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 4, pageIdx * 4)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+                        images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
                         pageConfig={currentConfig}
                         onUpdatePageConfig={handleUpdatePageConfig}
                         onCellImageRotate={handleRotateImage}
@@ -815,7 +805,7 @@ export default function App() {
               totalPages={totalPages}
               metadata={metadata}
               footer={footer}
-              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * 4, pageIdx * 4)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+              images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
               pageConfig={currentConfig}
               onUpdatePageConfig={handleUpdatePageConfig}
               onCellImageRotate={handleRotateImage}
