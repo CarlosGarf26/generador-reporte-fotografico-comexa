@@ -163,7 +163,9 @@ export default function App() {
   // Create / update page subheader configurations whenever images count or metadata changes
   const isVideo = metadata.reportType === "extraccion_video";
   const pageSize = 4;
-  const totalPages = Math.max(1, Math.ceil(images.length / 4));
+  const totalPages = isVideo
+    ? 1 + Math.max(1, Math.ceil(images.length / 4))
+    : Math.max(1, Math.ceil(images.length / 4));
 
   useEffect(() => {
     setPageConfigs((prev) => {
@@ -176,7 +178,7 @@ export default function App() {
           updated.push({
             pageIndex: i,
             subHeader: isVideo
-              ? "Evidencia de equipos Nvr´s"
+              ? "Evidencia de equipos Nvr´s USB"
               : `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
             showSubHeader: true,
           });
@@ -184,7 +186,7 @@ export default function App() {
       }
       return updated;
     });
-  }, [totalPages, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType]);
+  }, [totalPages, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType, isVideo]);
 
   // --- HANDLERS ---
   const handleBulkUploadClick = () => {
@@ -228,7 +230,9 @@ export default function App() {
         fit: "contain",
       };
 
-      const targetIdx = pageIndex * 4 + slotIdx;
+      const targetIdx = isVideo
+        ? (pageIndex - 1) * 4 + slotIdx
+        : pageIndex * 4 + slotIdx;
       setImages((prev) => {
         const validImages = prev.filter((img) => !img.isBlank && img.url);
         const updated = [...validImages];
@@ -768,7 +772,7 @@ export default function App() {
                         totalPages={totalPages}
                         metadata={metadata}
                         footer={footer}
-                        images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * pageSize, pageIdx * pageSize)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
                         pageConfig={currentConfig}
                         onUpdatePageConfig={handleUpdatePageConfig}
                         onCellImageRotate={handleRotateImage}
@@ -805,7 +809,7 @@ export default function App() {
               totalPages={totalPages}
               metadata={metadata}
               footer={footer}
-              images={images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * pageSize, pageIdx * pageSize)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
               pageConfig={currentConfig}
               onUpdatePageConfig={handleUpdatePageConfig}
               onCellImageRotate={handleRotateImage}

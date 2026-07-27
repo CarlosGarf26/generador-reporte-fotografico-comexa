@@ -167,24 +167,23 @@ export const generateReportPDF = async (
 ): Promise<jsPDF> => {
   // Create jsPDF instance (Letter format, portrait, dimensions in mm)
   // Letter: 215.9 x 279.4 mm
+  const isVideo = metadata.reportType === "extraccion_video";
   const doc = new jsPDF({
-    orientation: "portrait",
+    orientation: isVideo ? "landscape" : "portrait",
     unit: "mm",
     format: "letter",
     compress: true,
   });
 
-  const pageWidth = 215.9;
-  const pageHeight = 279.4;
-
-  const isVideo = metadata.reportType === "extraccion_video";
+  const pageWidth = isVideo ? 279.4 : 215.9;
+  const pageHeight = isVideo ? 215.9 : 279.4;
 
   if (isVideo) {
     // ==========================================
     // --- FORMAT B: VIDEO EXTRACTION (CITI) ---
     // ==========================================
     const citiLogoPng = await svgToPngDataUrl(CITI_SVG_MARKUP, 200, 120);
-    const totalPages = Math.max(1, Math.ceil(images.length / 4));
+    const totalPages = 1 + Math.max(1, Math.ceil(images.length / 4));
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
       if (pageIdx > 0) {
@@ -197,138 +196,87 @@ export const generateReportPDF = async (
 
       const pageConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
         pageIndex: pageIdx,
-        subHeader: "Evidencia de equipos Nvr´s",
+        subHeader: "Evidencia de equipos Nvr´s USB",
         showSubHeader: true,
       };
 
       if (pageIdx === 0) {
-        // --- COVER PAGE WITH 4 IMAGES ---
+        // --- COVER PAGE (NO IMAGES) ---
         if (metadata.coverImageUrl) {
           try {
-            doc.addImage(metadata.coverImageUrl, "JPEG", 12, 8, 191.9, 38, undefined, "FAST");
+            doc.addImage(metadata.coverImageUrl, "JPEG", 0, 0, 279.4, 115, undefined, "FAST");
           } catch {
             doc.setFillColor(10, 15, 29);
-            doc.rect(12, 8, 191.9, 38, "F");
+            doc.rect(0, 0, 279.4, 115, "F");
           }
         } else {
           // Top CSIS Banner background
           doc.setFillColor(10, 15, 29);
-          doc.rect(12, 8, 191.9, 38, "F");
+          doc.rect(0, 0, 279.4, 115, "F");
 
           // Tech graphics
           doc.setFillColor(14, 116, 144);
-          doc.circle(40, 27, 8, "F");
+          doc.circle(70, 50, 12, "F");
           doc.setFillColor(220, 38, 38);
-          doc.rect(28, 26, 24, 3, "F");
+          doc.rect(50, 48, 40, 4, "F");
 
           doc.setTextColor(255, 255, 255);
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(12);
-          doc.text("CSIS — Regional Command Center", 60, 24);
+          doc.setFontSize(20);
+          doc.text("CSIS — Regional Command Center", 95, 45);
 
           doc.setTextColor(148, 163, 184);
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.5);
-          doc.text("COMEXA SECURITY OPERATIONS • EVIDENCIA EN VÍDEO", 60, 31);
+          doc.setFontSize(10);
+          doc.text("COMEXA SECURITY OPERATIONS • EVIDENCIA EN VÍDEO", 95, 55);
         }
 
         // Cyan Metadata Box
         doc.setFillColor(0, 114, 206);
-        doc.rect(12, 48, 191.9, 24, "F");
+        doc.rect(0, 115, 279.4, 85, "F");
 
         doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.text("REGIONAL COMMAND CENTER", 16, 54);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.text("Evidencia de extracciones de vídeo Dvr´s y Nvr´s", 198, 54, { align: "right" });
+        doc.setFontSize(36);
+        doc.text("Regional Command Center", 20, 135);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(18);
+        doc.text("Evidencia de extracciones de vídeo en Nvr´s", 80, 152);
 
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "bold");
-        doc.text(`SUCURSAL: ${(metadata.sucursal || "4101 VALLE DE ARAGON").toUpperCase()}`, 16, 62);
-        doc.text(`TASK: ${(metadata.incidenteTask || "SCTASK0000883852").toUpperCase()}`, 16, 68);
-        doc.text(`TÉCNICO: ${(metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA").toUpperCase()}`, 110, 62);
-
-        // Subheader
-        if (pageConfig.showSubHeader && pageConfig.subHeader) {
-          doc.setTextColor(0, 75, 135);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text((pageConfig.subHeader || "EVIDENCIA DE EQUIPOS").toUpperCase(), pageWidth / 2, 77, { align: "center" });
-        }
-
-        // Render up to 4 images for Page 0
-        const currentImages = images.slice(0, 4);
-        for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
-          const image = currentImages[imgIdx];
-          if (!image) continue;
-
-          let cellX = 12;
-          let cellY = 82;
-          if (imgIdx === 1) cellX = 111.9;
-          if (imgIdx === 2) cellY = 166;
-          if (imgIdx === 3) { cellX = 111.9; cellY = 166; }
-
-          const cellW = 92;
-          const cellH = 80;
-
-          doc.setDrawColor(203, 213, 225);
-          doc.setLineWidth(0.35);
-          doc.rect(cellX, cellY, cellW, cellH);
-
-          try {
-            const processedDataUrl = await processImageForCell(
-              image.url,
-              image.rotation,
-              image.fit,
-              800,
-              600
-            );
-
-            doc.addImage(processedDataUrl, "JPEG", cellX + 0.2, cellY + 0.2, cellW - 0.4, cellH - 0.4);
-          } catch (err) {
-            console.error("Error rendering image on video cover page PDF cell", err);
-          }
-        }
+        doc.setFontSize(16);
+        doc.text(`Sucursal: ${(metadata.sucursal || "").toUpperCase()}`, 20, 172);
+        doc.text(`Incidente: ${(metadata.incidenteTask || "").toUpperCase()}`, 20, 182);
+        doc.text(`Tecnico que atiende: ${(metadata.tecnicoAtiende || "").toUpperCase()}`, 20, 192);
 
         // Footer
         if (citiLogoPng) {
-          doc.addImage(citiLogoPng, "PNG", 12, 252, 16, 9.6);
+          doc.addImage(citiLogoPng, "PNG", 15, 202, 22, 13.2);
         }
-        doc.setTextColor(0, 91, 150);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.5);
-        doc.text(`PÁGINA ${pageIdx + 1} DE ${totalPages}`, 203.9, 258, { align: "right" });
-
       } else {
         // --- EVIDENCE PAGE (pageIdx > 0) ---
         if (pageConfig.showSubHeader && pageConfig.subHeader) {
-          doc.setTextColor(0, 75, 135);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(15);
-          doc.text(pageConfig.subHeader.toUpperCase(), pageWidth / 2, 21, { align: "center" });
+          doc.setTextColor(37, 99, 235); // #2563EB - bright blue
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(22);
+          doc.text(pageConfig.subHeader, pageWidth / 2, 15, { align: "center" });
         }
 
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.4);
-        doc.line(12, 26, 203.9, 26);
-
-        // Slice 4 images for pageIdx
-        const currentImages = images.slice(pageIdx * 4, (pageIdx + 1) * 4);
+        // Slice 4 images for pageIdx - 1
+        const currentImages = images.slice((pageIdx - 1) * 4, pageIdx * 4);
 
         for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
           const image = currentImages[imgIdx];
           if (!image) continue;
 
-          let cellX = 12;
-          let cellY = 32;
-          if (imgIdx === 1) cellX = 111.9;
-          if (imgIdx === 2) cellY = 142;
-          if (imgIdx === 3) { cellX = 111.9; cellY = 142; }
+          let cellX = 15;
+          let cellY = 22;
+          if (imgIdx === 1) cellX = 142.2;
+          if (imgIdx === 2) cellY = 112;
+          if (imgIdx === 3) { cellX = 142.2; cellY = 112; }
 
-          const cellW = 92;
-          const cellH = 100;
+          const cellW = 122;
+          const cellH = 85;
 
           doc.setDrawColor(203, 213, 225);
           doc.setLineWidth(0.35);
@@ -357,12 +305,12 @@ export const generateReportPDF = async (
         }
 
         if (citiLogoPng) {
-          doc.addImage(citiLogoPng, "PNG", 12, 252, 16, 9.6);
+          doc.addImage(citiLogoPng, "PNG", 15, 202, 22, 13.2);
         }
-        doc.setTextColor(0, 91, 150);
+        doc.setTextColor(100, 116, 139);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.5);
-        doc.text(`PÁGINA ${pageIdx + 1} DE ${totalPages}`, 203.9, 258, { align: "right" });
+        doc.setFontSize(10);
+        doc.text(`${pageIdx}`, 265, 210, { align: "right" });
       }
     }
     return doc;
