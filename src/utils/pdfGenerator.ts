@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { ReportMetadata, ReportFooter, ReportImage, PageConfig } from "../types";
+import { CSIS_COVER_BANNER_SVG_MARKUP } from "../components/CsisCoverBanner";
 
 // SVG Markups as strings for rendering to canvas
 const SANTANDER_SVG_MARKUP = `
@@ -183,6 +184,7 @@ export const generateReportPDF = async (
     // --- FORMAT B: VIDEO EXTRACTION (CITI) ---
     // ==========================================
     const citiLogoPng = await svgToPngDataUrl(CITI_SVG_MARKUP, 200, 120);
+    const csisBannerPng = await svgToPngDataUrl(CSIS_COVER_BANNER_SVG_MARKUP, 1200, 650);
     const totalPages = 1 + Math.max(1, Math.ceil(images.length / 4));
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
@@ -206,29 +208,19 @@ export const generateReportPDF = async (
           try {
             doc.addImage(metadata.coverImageUrl, "JPEG", 0, 0, 279.4, 115, undefined, "FAST");
           } catch {
-            doc.setFillColor(10, 15, 29);
-            doc.rect(0, 0, 279.4, 115, "F");
+            if (csisBannerPng) {
+              doc.addImage(csisBannerPng, "PNG", 0, 0, 279.4, 115, undefined, "FAST");
+            } else {
+              doc.setFillColor(10, 15, 29);
+              doc.rect(0, 0, 279.4, 115, "F");
+            }
           }
+        } else if (csisBannerPng) {
+          doc.addImage(csisBannerPng, "PNG", 0, 0, 279.4, 115, undefined, "FAST");
         } else {
-          // Top CSIS Banner background
+          // Top CSIS Banner fallback background
           doc.setFillColor(10, 15, 29);
           doc.rect(0, 0, 279.4, 115, "F");
-
-          // Tech graphics
-          doc.setFillColor(14, 116, 144);
-          doc.circle(70, 50, 12, "F");
-          doc.setFillColor(220, 38, 38);
-          doc.rect(50, 48, 40, 4, "F");
-
-          doc.setTextColor(255, 255, 255);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(20);
-          doc.text("CSIS — Regional Command Center", 95, 45);
-
-          doc.setTextColor(148, 163, 184);
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(10);
-          doc.text("COMEXA SECURITY OPERATIONS • EVIDENCIA EN VÍDEO", 95, 55);
         }
 
         // Cyan Metadata Box
