@@ -73,20 +73,20 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
         <div
           className="bg-white border border-gray-300 shadow-lg mx-auto print-page flex flex-col justify-between overflow-hidden relative"
           style={{
-            width: "215.9mm",
-            height: "279.4mm",
-            padding: "8mm 12mm 10mm 12mm",
+            width: "279.4mm",
+            height: "215.9mm",
+            padding: "8mm 12mm 8mm 12mm",
             boxSizing: "border-box",
           }}
           id={`report-page-${pageIndex}`}
         >
           {/* Subtle Background Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-            <ComexaWatermark className="w-56 h-56 opacity-[0.02]" />
+            <ComexaWatermark className="w-64 h-64 opacity-[0.02]" />
           </div>
 
           {/* 1. Compact Cover Header Banner: CSIS Regional Command Center Artwork */}
-          <div className="rounded-xl w-full h-[40mm] relative overflow-hidden group select-none border border-slate-200 shadow-2xs shrink-0 z-10">
+          <div className="rounded-t-xl w-full h-[35mm] relative overflow-hidden group select-none border border-slate-200 shadow-2xs shrink-0 z-10">
             <CsisCoverBanner customUrl={metadata.coverImageUrl} />
             
             {/* Overlay button to replace cover image if user wants */}
@@ -114,33 +114,33 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
           </div>
 
           {/* 2. Compact Cyan to Navy Blue Metadata Bar */}
-          <div className="bg-gradient-to-r from-[#00A3E0] via-[#0072CE] to-[#003B70] rounded-lg p-2.5 my-1.5 shrink-0 text-white shadow-2xs z-10 font-sans">
+          <div className="bg-gradient-to-b from-[#00A3E0] to-[#003B70] rounded-b-xl p-2.5 mb-2 shrink-0 text-white shadow-md z-10 font-sans border-x border-b border-slate-300">
             <div className="flex items-center justify-between border-b border-white/20 pb-1 mb-1.5">
-              <h2 className="text-xs font-bold tracking-tight text-white uppercase select-none">
+              <h2 className="text-sm font-bold tracking-tight text-white uppercase select-none">
                 Regional Command Center
               </h2>
-              <span className="text-[10px] text-sky-100 font-medium select-none">
+              <span className="text-xs text-sky-100 font-medium select-none">
                 Evidencia de extracciones de vídeo Dvr´s y Nvr´s
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[11px] font-medium select-text">
+            <div className="grid grid-cols-3 gap-2 text-[12px] font-medium select-text">
               <div>
-                <span className="block text-[9px] text-sky-200 uppercase font-bold">Sucursal:</span>
+                <span className="block text-[10px] text-sky-200 uppercase font-bold">Sucursal:</span>
                 <span className="font-bold text-white uppercase truncate block">
                   {metadata.sucursal || "4101 VALLE DE ARAGON"}
                 </span>
               </div>
 
               <div>
-                <span className="block text-[9px] text-sky-200 uppercase font-bold">Incidente / Task:</span>
+                <span className="block text-[10px] text-sky-200 uppercase font-bold">Incidente / Task:</span>
                 <span className="font-bold text-white uppercase truncate block">
                   {metadata.incidenteTask || "SCTASK0000883852"}
                 </span>
               </div>
 
               <div>
-                <span className="block text-[9px] text-sky-200 uppercase font-bold">Técnico que atiende:</span>
+                <span className="block text-[10px] text-sky-200 uppercase font-bold">Técnico que atiende:</span>
                 <span className="font-bold text-white uppercase truncate block">
                   {metadata.tecnicoAtiende || "ERICK GABRIEL PEREZ ESPINOZA"}
                 </span>
@@ -265,20 +265,20 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
         <div
           className="bg-white border border-gray-300 shadow-lg mx-auto print-page flex flex-col justify-between overflow-hidden relative"
           style={{
-            width: "215.9mm",
-            height: "279.4mm",
-            padding: "10mm 12mm 12mm 12mm",
+            width: "279.4mm",
+            height: "215.9mm",
+            padding: "8mm 12mm 8mm 12mm",
             boxSizing: "border-box",
           }}
           id={`report-page-${pageIndex}`}
         >
           {/* Subtle Background Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-            <ComexaWatermark className="w-56 h-56 opacity-[0.02]" />
+            <ComexaWatermark className="w-64 h-64 opacity-[0.02]" />
           </div>
 
           {/* 1. Header (Static editable text aligned center) */}
-          <div className="w-full text-center border-b border-gray-150 pb-2.5 z-10 shrink-0">
+          <div className="w-full text-center border-b border-gray-150 pb-2 z-10 shrink-0">
             {pageConfig.showSubHeader ? (
               <input
                 type="text"
@@ -287,7 +287,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                   onUpdatePageConfig(pageIndex, { subHeader: e.target.value })
                 }
                 placeholder="EVIDENCIA DE EQUIPOS (Haga clic para editar)"
-                className="w-full text-center text-lg font-black text-[#004B87] tracking-wide uppercase bg-transparent hover:bg-slate-50 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none py-1 px-2 rounded transition-all select-all font-sans"
+                className="w-full text-center text-base font-black text-[#004B87] tracking-wide uppercase bg-transparent hover:bg-slate-50 focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none py-1 px-2 rounded transition-all select-all font-sans"
               />
             ) : (
               <div className="h-6" />
@@ -295,8 +295,8 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
           </div>
 
           {/* 2. 4-Image Layout Area (2x2 Grid) */}
-          <div className="flex-1 my-6 grid grid-cols-2 grid-rows-2 gap-4 z-10 overflow-hidden"
-               style={{ maxHeight: "205mm" }}
+          <div className="flex-1 my-3 grid grid-cols-2 grid-rows-2 gap-4 z-10 overflow-hidden"
+               style={{ maxHeight: "170mm" }}
           >
             {imageSlots.map((slotIdx) => {
               const img = images[slotIdx];
