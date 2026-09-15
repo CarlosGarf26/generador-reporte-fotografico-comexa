@@ -108,7 +108,7 @@ export default function App() {
     {
       id: "block-1",
       fecha: "11/06/2026",
-      titulo: "Evidencia de equipos Nvr´s USB",
+      titulo: "",
       images: [],
     },
   ]);
@@ -162,29 +162,7 @@ export default function App() {
     0
   );
 
-  // Synchronize page configs with pages
-  useEffect(() => {
-    setPageConfigs((prev) => {
-      return pages.map((page) => {
-        const existing = prev.find(
-          (c) => c.pageIndex === page.pageIndex && c.blockId === page.blockId
-        );
-        if (existing) {
-          return {
-            ...existing,
-            fecha: page.fecha,
-          };
-        }
-        return {
-          pageIndex: page.pageIndex,
-          blockId: page.blockId,
-          fecha: page.fecha,
-          subHeader: page.subHeaderDefault,
-          showSubHeader: !page.isCover,
-        };
-      });
-    });
-  }, [totalPages, dateBlocks, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType, isVideo]);
+
 
   // Global drag-and-drop listener to prevent browser from navigating away on dropped files outside dropzones
   useEffect(() => {
@@ -393,7 +371,7 @@ export default function App() {
     const newBlock: DateBlock = {
       id: newId,
       fecha: metadata.fechaInventario || new Date().toLocaleDateString("es-MX"),
-      titulo: `Día ${dateBlocks.length + 1}`,
+      titulo: "",
       images: [],
     };
     setDateBlocks((prev) => [...prev, newBlock]);
@@ -446,13 +424,13 @@ export default function App() {
       {
         id: "block-demo-1",
         fecha: metadata.fechaInventario || "11/06/2026",
-        titulo: isVideo ? "Extracción NVRs y Cámaras Exteriores" : "Mantenimiento CCTV y Gabinetes",
+        titulo: "",
         images: block1Images,
       },
       {
         id: "block-demo-2",
         fecha: "12/06/2026",
-        titulo: isVideo ? "Revisión Control de Acceso y UPS" : "Detección Incendio y Baterías",
+        titulo: "",
         images: block2Images,
       },
     ]);
@@ -468,7 +446,7 @@ export default function App() {
         {
           id: "block-1",
           fecha: metadata.fechaInventario || "11/06/2026",
-          titulo: "Evidencia Nvr´s USB",
+          titulo: "",
           images: [],
         },
       ]);
@@ -815,35 +793,19 @@ export default function App() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                    Fecha del Bloque
-                  </label>
-                  <input
-                    type="text"
-                    value={activeBlock.fecha}
-                    onChange={(e) =>
-                      handleUpdateDateBlock(activeBlock.id, { fecha: e.target.value })
-                    }
-                    placeholder="DD/MM/AAAA"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                    Título / Jornada
-                  </label>
-                  <input
-                    type="text"
-                    value={activeBlock.titulo || ""}
-                    onChange={(e) =>
-                      handleUpdateDateBlock(activeBlock.id, { titulo: e.target.value })
-                    }
-                    placeholder="Ej. NVRs USB, Día 1"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                  Fecha del Bloque (Aparecerá en el encabezado)
+                </label>
+                <input
+                  type="text"
+                  value={activeBlock.fecha}
+                  onChange={(e) =>
+                    handleUpdateDateBlock(activeBlock.id, { fecha: e.target.value })
+                  }
+                  placeholder="DD/MM/AAAA"
+                  className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
               </div>
 
               {/* Drag & Drop uploader area for this active block */}
@@ -1117,15 +1079,6 @@ export default function App() {
                                 className="font-bold text-sm text-gray-900 bg-white border border-gray-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                               />
                             </div>
-                            <input
-                              type="text"
-                              value={block.titulo || ""}
-                              onChange={(e) =>
-                                handleUpdateDateBlock(block.id, { titulo: e.target.value })
-                              }
-                              placeholder="Título de la sección (ej. Extracción NVR USB)"
-                              className="text-xs text-gray-600 bg-transparent border-b border-dashed border-gray-300 hover:border-indigo-400 focus:border-indigo-500 focus:outline-none w-64 mt-1"
-                            />
                           </div>
                         </div>
 

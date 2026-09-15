@@ -185,13 +185,9 @@ export const buildPagesFromBlocks = (
 
       let defaultSubHeader = "";
       if (isVideo) {
-        defaultSubHeader = block.titulo
-          ? `${block.fecha} - ${block.titulo}`
-          : `${block.fecha} - Evidencia de equipos Nvr´s USB`;
+        defaultSubHeader = `${block.fecha}`;
       } else {
-        defaultSubHeader = block.titulo
-          ? `${metadata.tipoTrabajo} ${block.fecha} - ${block.titulo}`
-          : `${metadata.tipoTrabajo} ${block.fecha}`;
+        defaultSubHeader = `${metadata.tipoTrabajo || "MANTENIMIENTO"} ${block.fecha}`;
       }
 
       pages.push({
@@ -212,7 +208,7 @@ export const buildPagesFromBlocks = (
       pageIndex: 0,
       isCover: false,
       fecha: metadata.fechaInventario,
-      subHeaderDefault: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
+      subHeaderDefault: `${metadata.tipoTrabajo || "MANTENIMIENTO"} ${metadata.fechaInventario}`,
       images: [],
     });
   }
