@@ -142,9 +142,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
           </div>
 
           {/* Cover Page Footer */}
-          <div className="w-full bg-white h-[20mm] flex items-center px-12 z-10 shrink-0 shadow-sm relative">
-            <CitiLogo className="h-10" />
-          </div>
+          <div className="w-full bg-white h-[20mm] z-10 shrink-0 shadow-sm relative" />
         </div>
       );
     } else {
@@ -267,10 +265,8 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
             })}
           </div>
 
-          {/* 3. Footer (Logo and Page number) */}
-          <div className="flex justify-between items-center pt-3 select-none shrink-0 z-10 border-t border-slate-100">
-            {/* Citi Logo on left */}
-            <CitiLogo className="h-9" />
+          {/* 3. Footer (Page number) */}
+          <div className="flex justify-end items-center pt-3 select-none shrink-0 z-10 border-t border-slate-100">
             <span className="text-sm font-bold text-gray-500 font-sans">
               {pageIndex}
             </span>
@@ -294,19 +290,23 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
          id={`report-page-${pageIndex}`}
     >
       {/* 1. HEADER (Black Bar) */}
-      <div className="bg-black text-white p-3 flex justify-between items-center h-[54px] rounded-xs select-none">
-        {/* Left Side: COMEXA logo */}
-        <ComexaLogo className="h-9 sm:h-10" darkTheme={true} />
+      <div className="bg-black text-white px-3 py-1.5 grid grid-cols-[1fr_auto_1fr] items-center h-[52px] rounded-xs select-none overflow-hidden">
+        {/* Left Side: COMEXA logo (Aligned Left) */}
+        <div className="flex items-center justify-start min-w-0">
+          <ComexaLogo className="h-9 sm:h-10" darkTheme={true} />
+        </div>
         
-        {/* Center Title */}
-        <div className="text-center flex-1 mx-2">
-          <h1 className="text-base font-bold tracking-widest font-sans uppercase">
+        {/* Center Title: REPORTE FOTOGRÁFICO (Strictly Centered) */}
+        <div className="text-center px-2">
+          <h1 className="text-xs sm:text-sm md:text-base font-bold tracking-widest font-sans uppercase whitespace-nowrap text-white">
             REPORTE FOTOGRÁFICO
           </h1>
         </div>
 
-        {/* Right Side: Santander logo */}
-        <SantanderLogo className="h-7 sm:h-8" />
+        {/* Right Side: Santander logo (Aligned Right with safety padding) */}
+        <div className="flex items-center justify-end pr-2">
+          <SantanderLogo className="h-6 sm:h-7" />
+        </div>
       </div>
 
       {/* 2. METADATA FIELD GRID */}
@@ -319,7 +319,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
         
         {/* Right Column */}
         <div className="space-y-0.5 text-right text-gray-900">
-          <p>Fecha de inventario: <span className="font-semibold">{metadata.fechaInventario}</span></p>
+          <p>Fecha de inventario: <span className="font-semibold">{pageConfig.fecha || metadata.fechaInventario}</span></p>
           <p className="text-red-600 font-extrabold uppercase">{metadata.tipoTrabajo}</p>
         </div>
       </div>
@@ -453,13 +453,9 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
           </p>
         </div>
 
-        {/* Dynamic metadata bottom fields */}
-        <div className="mt-2.5 flex justify-between text-[7px] text-sky-800 font-bold uppercase tracking-wider font-sans">
-          <span>{footer.permiso}</span>
-          <span className="text-[9px] font-extrabold text-indigo-700 no-print">
-            PÁGINA {pageIndex + 1} DE {totalPages}
-          </span>
-          <span>{footer.expediente}</span>
+        {/* Dynamic page counter (without the permission and file numbers line) */}
+        <div className="mt-1 flex justify-center text-[9px] font-extrabold text-indigo-700 no-print font-sans">
+          PÁGINA {pageIndex + 1} DE {totalPages}
         </div>
       </div>
     </div>

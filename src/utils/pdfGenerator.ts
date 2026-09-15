@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
-import { ReportMetadata, ReportFooter, ReportImage, PageConfig } from "../types";
+import { ReportMetadata, ReportFooter, ReportImage, PageConfig, DateBlock, PageInfo } from "../types";
 import { CSIS_COVER_BANNER_SVG_MARKUP } from "../components/CsisCoverBanner";
+import { COMEXA_LOGO_SRC } from "../assets/comexaLogoBase64";
 
 // SVG Markups as strings for rendering to canvas
 const SANTANDER_SVG_MARKUP = `
@@ -16,38 +17,38 @@ const SANTANDER_SVG_MARKUP = `
 `;
 
 const COMEXA_SVG_MARKUP = `
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <rect x="15" y="10" width="70" height="60" fill="#000000" />
-  <g stroke="#FFFFFF" stroke-width="2">
-    <line x1="15" y1="14" x2="85" y2="14" />
-    <line x1="15" y1="18" x2="85" y2="18" />
-    <line x1="15" y1="22" x2="85" y2="22" />
-    <line x1="15" y1="26" x2="85" y2="26" />
-    <line x1="15" y1="30" x2="85" y2="30" />
-    <line x1="15" y1="34" x2="85" y2="34" />
-    <line x1="15" y1="38" x2="85" y2="38" />
-    <line x1="15" y1="42" x2="85" y2="42" />
-    <line x1="15" y1="46" x2="85" y2="46" />
-    <line x1="15" y1="50" x2="85" y2="50" />
-    <line x1="15" y1="54" x2="85" y2="54" />
-    <line x1="15" y1="58" x2="85" y2="58" />
-    <line x1="15" y1="62" x2="85" y2="62" />
-    <line x1="15" y1="66" x2="85" y2="66" />
+<svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="120" rx="4" fill="#FFFFFF" />
+  <rect x="42" y="10" width="96" height="72" fill="#000000" />
+  <g stroke="#FFFFFF" stroke-width="2.2">
+    <line x1="42" y1="15" x2="138" y2="15" />
+    <line x1="42" y1="20" x2="138" y2="20" />
+    <line x1="42" y1="25" x2="138" y2="25" />
+    <line x1="42" y1="30" x2="138" y2="30" />
+    <line x1="42" y1="35" x2="138" y2="35" />
+    <line x1="42" y1="40" x2="138" y2="40" />
+    <line x1="42" y1="45" x2="138" y2="45" />
+    <line x1="42" y1="50" x2="138" y2="50" />
+    <line x1="42" y1="55" x2="138" y2="55" />
+    <line x1="42" y1="60" x2="138" y2="60" />
+    <line x1="42" y1="65" x2="138" y2="65" />
+    <line x1="42" y1="70" x2="138" y2="70" />
+    <line x1="42" y1="75" x2="138" y2="75" />
   </g>
   <path
-    d="M 20 62 C 20 54, 25 45, 30 40 C 33 37, 36 36, 40 36 C 45 36, 49 38, 54 38 C 62 38, 71 35, 75 32 C 80 28, 83 23, 79 19 C 75 15, 68 17, 64 21 C 57 26, 55 29, 50 27 C 46 25, 49 19, 52 13 C 55 7, 50 3, 44 6 C 39 9, 38 16, 39 21 C 35 17, 31 13, 25 11 C 19 9, 15 13, 19 17 C 22 20, 27 22, 31 24 C 27 26, 21 29, 15 33 C 10 37, 12 43, 18 41 C 23 39, 29 35, 33 33 C 29 39, 25 47, 25 55 C 25 61, 28 66, 30 66 Z"
-    fill="#FFE500"
+    d="M 48 82 C 48 74, 53 62, 60 52 C 63 48, 67 44, 70 38 C 66 35, 60 30, 53 26 C 48 24, 45 22, 45 20 C 45 18, 48 19, 52 22 C 55 24, 58 24, 58 21 C 58 19, 54 14, 53 12 C 53 10, 56 11, 59 14 C 62 17, 65 17, 65 14 C 65 12, 63 9, 63 7 C 63 5, 67 7, 70 10 C 73 14, 76 14, 77 12 C 78 10, 78 7, 79 6 C 80 5, 82 8, 83 12 C 84 17, 83 22, 82 28 C 83 31, 85 33, 88 33 C 89 29, 89 19, 89 15 C 90 13, 92 16, 93 19 C 94 23, 97 23, 98 20 C 99 17, 102 12, 103 10 C 104 9, 106 12, 107 16 C 108 20, 111 20, 113 18 C 115 16, 119 13, 120 12 C 121 11, 122 14, 121 18 C 119 22, 122 24, 125 22 C 128 21, 133 19, 135 19 C 137 19, 135 23, 131 26 C 125 30, 119 34, 113 36 C 109 37, 105 38, 102 40 C 104 41, 111 43, 118 45 C 124 46, 130 48, 131 51 C 132 54, 131 58, 127 59 C 122 60, 117 59, 113 59 C 112 62, 112 67, 113 71 C 113 73, 111 73, 110 71 C 108 68, 107 64, 107 61 C 107 61, 110 70, 115 82 Z"
+    fill="#FFE600"
   />
   <text
-    x="50"
-    y="92"
+    x="90"
+    y="107"
     text-anchor="middle"
     fill="#009EE0"
-    font-size="17"
-    font-weight="950"
+    font-size="23"
+    font-weight="900"
     font-style="italic"
     font-family="sans-serif"
-    letter-spacing="0.5"
+    letter-spacing="0.8"
   >
     COMEXA®
   </text>
@@ -159,16 +160,94 @@ const processImageForCell = (
   });
 };
 
+export const buildPagesFromBlocks = (
+  dateBlocks: DateBlock[],
+  metadata: ReportMetadata
+): PageInfo[] => {
+  const isVideo = metadata.reportType === "extraccion_video";
+  const pages: PageInfo[] = [];
+
+  if (isVideo) {
+    pages.push({
+      pageIndex: 0,
+      isCover: true,
+      fecha: metadata.fechaInventario,
+      subHeaderDefault: "Evidencia de extracciones de vídeo en Nvr´s",
+      images: [],
+    });
+  }
+
+  dateBlocks.forEach((block, blockIdx) => {
+    const blockPages = Math.max(1, Math.ceil(block.images.length / 4));
+    for (let p = 0; p < blockPages; p++) {
+      const pageIndex = pages.length;
+      const pageImages = block.images.slice(p * 4, (p + 1) * 4);
+
+      let defaultSubHeader = "";
+      if (isVideo) {
+        defaultSubHeader = block.titulo
+          ? `${block.fecha} - ${block.titulo}`
+          : `${block.fecha} - Evidencia de equipos Nvr´s USB`;
+      } else {
+        defaultSubHeader = block.titulo
+          ? `${metadata.tipoTrabajo} ${block.fecha} - ${block.titulo}`
+          : `${metadata.tipoTrabajo} ${block.fecha}`;
+      }
+
+      pages.push({
+        pageIndex,
+        isCover: false,
+        blockId: block.id,
+        blockIndex: blockIdx,
+        pageInBlock: p,
+        fecha: block.fecha,
+        subHeaderDefault: defaultSubHeader,
+        images: pageImages,
+      });
+    }
+  });
+
+  if (pages.length === 0) {
+    pages.push({
+      pageIndex: 0,
+      isCover: false,
+      fecha: metadata.fechaInventario,
+      subHeaderDefault: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
+      images: [],
+    });
+  }
+
+  return pages;
+};
+
 export const generateReportPDF = async (
   metadata: ReportMetadata,
   footer: ReportFooter,
-  images: ReportImage[],
+  imagesOrBlocks: ReportImage[] | DateBlock[],
   pageConfigs: PageConfig[],
   onProgress?: (progress: number) => void
 ): Promise<jsPDF> => {
+  const isVideo = metadata.reportType === "extraccion_video";
+
+  let pages: PageInfo[] = [];
+  if (
+    Array.isArray(imagesOrBlocks) &&
+    imagesOrBlocks.length > 0 &&
+    "fecha" in imagesOrBlocks[0]
+  ) {
+    pages = buildPagesFromBlocks(imagesOrBlocks as DateBlock[], metadata);
+  } else {
+    const fallbackBlock: DateBlock = {
+      id: "block-1",
+      fecha: metadata.fechaInventario,
+      titulo: "",
+      images: (imagesOrBlocks as ReportImage[]) || [],
+    };
+    pages = buildPagesFromBlocks([fallbackBlock], metadata);
+  }
+
   // Create jsPDF instance (Letter format, portrait, dimensions in mm)
   // Letter: 215.9 x 279.4 mm
-  const isVideo = metadata.reportType === "extraccion_video";
   const doc = new jsPDF({
     orientation: isVideo ? "landscape" : "portrait",
     unit: "mm",
@@ -181,13 +260,13 @@ export const generateReportPDF = async (
 
   if (isVideo) {
     // ==========================================
-    // --- FORMAT B: VIDEO EXTRACTION (CITI) ---
+    // --- FORMAT B: VIDEO EXTRACTION ---
     // ==========================================
-    const citiLogoPng = await svgToPngDataUrl(CITI_SVG_MARKUP, 200, 120);
     const csisBannerPng = await svgToPngDataUrl(CSIS_COVER_BANNER_SVG_MARKUP, 1200, 650);
-    const totalPages = 1 + Math.max(1, Math.ceil(images.length / 4));
+    const totalPages = pages.length;
 
     for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+      const page = pages[pageIdx];
       if (pageIdx > 0) {
         doc.addPage();
       }
@@ -198,11 +277,11 @@ export const generateReportPDF = async (
 
       const pageConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
         pageIndex: pageIdx,
-        subHeader: "Evidencia de equipos Nvr´s USB",
-        showSubHeader: true,
+        subHeader: page.subHeaderDefault,
+        showSubHeader: !page.isCover,
       };
 
-      if (pageIdx === 0) {
+      if (page.isCover) {
         // --- COVER PAGE (NO IMAGES) ---
         if (metadata.coverImageUrl) {
           try {
@@ -240,11 +319,6 @@ export const generateReportPDF = async (
         doc.text(`Sucursal: ${(metadata.sucursal || "").toUpperCase()}`, 20, 172);
         doc.text(`Incidente: ${(metadata.incidenteTask || "").toUpperCase()}`, 20, 182);
         doc.text(`Tecnico que atiende: ${(metadata.tecnicoAtiende || "").toUpperCase()}`, 20, 192);
-
-        // Footer
-        if (citiLogoPng) {
-          doc.addImage(citiLogoPng, "PNG", 15, 202, 22, 13.2);
-        }
       } else {
         // --- EVIDENCE PAGE (pageIdx > 0) ---
         if (pageConfig.showSubHeader && pageConfig.subHeader) {
@@ -254,11 +328,8 @@ export const generateReportPDF = async (
           doc.text(pageConfig.subHeader, pageWidth / 2, 15, { align: "center" });
         }
 
-        // Slice 4 images for pageIdx - 1
-        const currentImages = images.slice((pageIdx - 1) * 4, pageIdx * 4);
-
         for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
-          const image = currentImages[imgIdx];
+          const image = page.images[imgIdx];
           if (!image) continue;
 
           let cellX = 15;
@@ -296,9 +367,6 @@ export const generateReportPDF = async (
           }
         }
 
-        if (citiLogoPng) {
-          doc.addImage(citiLogoPng, "PNG", 15, 202, 22, 13.2);
-        }
         doc.setTextColor(100, 116, 139);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
@@ -314,15 +382,14 @@ export const generateReportPDF = async (
   const marginX = 10;
   const contentWidth = pageWidth - marginX * 2; // 195.9mm
 
-  // Pre-render logos to PNG
-  const comexaLogoPng = await svgToPngDataUrl(COMEXA_SVG_MARKUP, 240, 240);
+  // Pre-render logos
+  const comexaLogoPng = COMEXA_LOGO_SRC;
   const santanderLogoPng = await svgToPngDataUrl(SANTANDER_SVG_MARKUP, 200, 200);
 
-  // Split images into pages (up to 4 images per page)
-  const pageSize = 4;
-  const totalPages = Math.max(1, Math.ceil(images.length / pageSize));
+  const totalPages = pages.length;
 
   for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+    const page = pages[pageIdx];
     if (pageIdx > 0) {
       doc.addPage();
     }
@@ -331,61 +398,51 @@ export const generateReportPDF = async (
       onProgress(Math.round(((pageIdx + 1) / totalPages) * 100));
     }
 
-    const currentImages = images.slice(
-      pageIdx * pageSize,
-      (pageIdx + 1) * pageSize
-    );
-
     // Get page config or default
     const pageConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
       pageIndex: pageIdx,
-      subHeader: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
+      subHeader: page.subHeaderDefault,
       showSubHeader: true,
     };
 
     // --- 1. HEADER (Black Bar) ---
     const headerY = 10;
-    const headerHeight = 16;
+    const headerHeight = 15;
     doc.setFillColor(0, 0, 0);
     doc.rect(marginX, headerY, contentWidth, headerHeight, "F");
 
-    // Left Side: COMEXA Logo & Subtexts
+    // Left Side: COMEXA Logo (Directly from user's GitHub image)
     if (comexaLogoPng) {
-      doc.addImage(comexaLogoPng, "PNG", marginX + 3, headerY + 1.5, 13, 13);
+      doc.addImage(comexaLogoPng, "JPEG", marginX + 2, headerY + 1.5, 17.8, 12);
     }
-    doc.setTextColor(255, 255, 255); // White for primary labels in dark bar
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(5);
-    doc.text("INTEGRADORES Y DESARROLLADORES", marginX + 18, headerY + 4.5);
-    doc.text("EN SISTEMAS ELECTRÓNICOS DE SEGURIDAD", marginX + 18, headerY + 6.5);
-    doc.setTextColor(0, 158, 224); // Cyan for the third line
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(4.5);
-    doc.text("Alarmas, CCTV, Incendio, Control de Acceso", marginX + 18, headerY + 8.5);
 
-    // Center Text: REPORTE FOTOGRÁFICO
+    // Center Text: REPORTE FOTOGRÁFICO (Strictly Centered horizontally on contentWidth)
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("REPORTE FOTOGRÁFICO", marginX + 80, headerY + 10.5, {
+    doc.setFontSize(12.5);
+    doc.text("REPORTE FOTOGRÁFICO", marginX + contentWidth / 2, headerY + 9.5, {
       align: "center",
     });
 
-    // Right Side: Santander logo
+    // Right Side: Santander logo (Safely within right margin)
+    const santanderRightPadding = 4;
+    const santanderTotalWidth = 26; // 6mm logo + 2mm gap + ~18mm text
+    const santanderStartX = marginX + contentWidth - santanderTotalWidth - santanderRightPadding;
+
     if (santanderLogoPng) {
       doc.addImage(
         santanderLogoPng,
         "PNG",
-        marginX + contentWidth - 30,
-        headerY + 3,
-        9,
-        9
+        santanderStartX,
+        headerY + 4,
+        6.5,
+        6.5
       );
     }
     doc.setTextColor(236, 0, 0); // Authentic Red for Santander
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Santander", marginX + contentWidth - 20, headerY + 9.5);
+    doc.setFontSize(11);
+    doc.text("Santander", santanderStartX + 8, headerY + 9.5);
 
     // --- 2. METADATA SECTION ---
     const metaY = headerY + headerHeight + 5;
@@ -398,8 +455,9 @@ export const generateReportPDF = async (
     doc.text(`C.C.: ${metadata.cc}`, marginX, metaY + 4);
 
     // Right Column
+    const pageDate = page.fecha || metadata.fechaInventario;
     doc.text(
-      `Fecha de inventario: ${metadata.fechaInventario}`,
+      `Fecha de inventario: ${pageDate}`,
       marginX + contentWidth,
       metaY,
       { align: "right" }
@@ -469,8 +527,8 @@ export const generateReportPDF = async (
     }
 
     // Process and draw the up to 4 images
-    for (let imgIdx = 0; imgIdx < pageSize; imgIdx++) {
-      const image = currentImages[imgIdx];
+    for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
+      const image = page.images[imgIdx];
       if (!image) continue;
 
       // Determine cell coordinates
@@ -508,7 +566,7 @@ export const generateReportPDF = async (
     }
 
     // --- 5. FOOTER BLOCK ---
-    const footerY = 265;
+    const footerY = 267;
     doc.setDrawColor(242, 169, 0); // COMEXA Gold
     doc.setLineWidth(1);
     doc.line(marginX, footerY, marginX + contentWidth, footerY);
@@ -527,13 +585,6 @@ export const generateReportPDF = async (
       footerY + 6.5,
       { align: "center" }
     );
-
-    doc.setFont("helvetica", "bold");
-    doc.text(footer.permiso.toUpperCase(), marginX, footerY + 11);
-
-    doc.text(footer.expediente.toUpperCase(), marginX + contentWidth, footerY + 11, {
-      align: "right",
-    });
   }
 
   return doc;

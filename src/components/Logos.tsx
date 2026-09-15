@@ -1,4 +1,5 @@
 import React from "react";
+import { COMEXA_LOGO_SRC } from "../assets/comexaLogoBase64";
 
 export const SantanderLogo: React.FC<{ className?: string; color?: string; showText?: boolean }> = ({
   className = "h-8",
@@ -35,84 +36,17 @@ export const SantanderLogo: React.FC<{ className?: string; color?: string; showT
 };
 
 export const ComexaLogo: React.FC<{ className?: string; darkTheme?: boolean }> = ({
-  className = "h-11",
-  darkTheme = true,
+  className = "h-10",
 }) => {
-  const stripeColor = darkTheme ? "#FFFFFF" : "#000000";
-  const rectBgColor = darkTheme ? "#000000" : "#FFFFFF";
-
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      {/* Yellow/Black Striped COMEXA Moose Logo */}
-      <svg
-        viewBox="0 0 100 100"
-        className="h-full w-auto flex-shrink-0"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect x="15" y="10" width="70" height="60" fill={rectBgColor} />
-        {/* Horizontal Stripes */}
-        <g stroke={stripeColor} strokeWidth="2">
-          <line x1="15" y1="14" x2="85" y2="14" />
-          <line x1="15" y1="18" x2="85" y2="18" />
-          <line x1="15" y1="22" x2="85" y2="22" />
-          <line x1="15" y1="26" x2="85" y2="26" />
-          <line x1="15" y1="30" x2="85" y2="30" />
-          <line x1="15" y1="34" x2="85" y2="34" />
-          <line x1="15" y1="38" x2="85" y2="38" />
-          <line x1="15" y1="42" x2="85" y2="42" />
-          <line x1="15" y1="46" x2="85" y2="46" />
-          <line x1="15" y1="50" x2="85" y2="50" />
-          <line x1="15" y1="54" x2="85" y2="54" />
-          <line x1="15" y1="58" x2="85" y2="58" />
-          <line x1="15" y1="62" x2="85" y2="62" />
-          <line x1="15" y1="66" x2="85" y2="66" />
-        </g>
-        {/* Yellow Elk/Moose profile silhouette facing right */}
-        <path
-          d="M 20 62 C 20 54, 25 45, 30 40 C 33 37, 36 36, 40 36 C 45 36, 49 38, 54 38 C 62 38, 71 35, 75 32 C 80 28, 83 23, 79 19 C 75 15, 68 17, 64 21 C 57 26, 55 29, 50 27 C 46 25, 49 19, 52 13 C 55 7, 50 3, 44 6 C 39 9, 38 16, 39 21 C 35 17, 31 13, 25 11 C 19 9, 15 13, 19 17 C 22 20, 27 22, 31 24 C 27 26, 21 29, 15 33 C 10 37, 12 43, 18 41 C 23 39, 29 35, 33 33 C 29 39, 25 47, 25 55 C 25 61, 28 66, 30 66 Z"
-          fill="#FFE500"
-        />
-        {/* Cyan Italic COMEXA Text below */}
-        <text
-          x="50"
-          y="92"
-          textAnchor="middle"
-          fill="#009EE0"
-          fontSize="17"
-          fontWeight="950"
-          fontStyle="italic"
-          fontFamily='"Inter", "Arial Black", sans-serif'
-          letterSpacing="0.5"
-        >
-          COMEXA®
-        </text>
-      </svg>
-      
-      {/* Labels */}
-      <div className="flex flex-col justify-center leading-tight">
-        <span
-          className={`text-[8px] sm:text-[9px] md:text-[10px] font-black tracking-wider font-sans uppercase ${
-            darkTheme ? "text-white" : "text-[#1A3D6C]"
-          }`}
-        >
-          INTEGRADORES Y DESARROLLADORES
-        </span>
-        <span
-          className={`text-[7px] sm:text-[8px] md:text-[9px] font-extrabold tracking-wide font-sans uppercase ${
-            darkTheme ? "text-white" : "text-[#1A3D6C]"
-          }`}
-        >
-          EN SISTEMAS ELECTRÓNICOS DE SEGURIDAD
-        </span>
-        <span
-          className={`text-[6px] sm:text-[7px] md:text-[8px] font-sans tracking-normal font-medium ${
-            darkTheme ? "text-[#009EE0]" : "text-[#4A90E2]"
-          }`}
-        >
-          Alarmas, CCTV, Incendio, Control de Acceso
-        </span>
-      </div>
+    <div className={`flex items-center shrink-0 ${className} select-none`}>
+      {/* Exact image from user GitHub */}
+      <img
+        src={COMEXA_LOGO_SRC}
+        alt="COMEXA"
+        className="h-full w-auto object-contain rounded-xs"
+        loading="eager"
+      />
     </div>
   );
 };

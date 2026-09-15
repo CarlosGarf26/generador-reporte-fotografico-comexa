@@ -31,8 +31,28 @@ export interface ReportImage {
   isBlank?: boolean; // True if this represents a blank placeholder space
 }
 
+export interface DateBlock {
+  id: string;
+  fecha: string;
+  titulo?: string;
+  images: ReportImage[];
+}
+
 export interface PageConfig {
   pageIndex: number;
   subHeader: string;
   showSubHeader: boolean;
+  blockId?: string;
+  fecha?: string;
+}
+
+export interface PageInfo {
+  pageIndex: number;
+  isCover: boolean;
+  blockId?: string;
+  blockIndex?: number;
+  pageInBlock?: number;
+  fecha: string;
+  subHeaderDefault: string;
+  images: ReportImage[];
 }

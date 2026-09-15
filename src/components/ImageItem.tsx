@@ -10,6 +10,9 @@ interface ImageItemProps {
   onToggleFit: (id: string) => void;
   onDelete: (id: string) => void;
   onMove: (index: number, direction: "left" | "right") => void;
+  currentBlockId?: string;
+  availableBlocks?: { id: string; fecha: string; titulo?: string }[];
+  onMoveToBlock?: (imageId: string, targetBlockId: string) => void;
 }
 
 export const ImageItem: React.FC<ImageItemProps> = ({
@@ -20,6 +23,9 @@ export const ImageItem: React.FC<ImageItemProps> = ({
   onToggleFit,
   onDelete,
   onMove,
+  currentBlockId,
+  availableBlocks,
+  onMoveToBlock,
 }) => {
   // Format file size nicely
   const formatSize = (bytes: number) => {
@@ -162,6 +168,28 @@ export const ImageItem: React.FC<ImageItemProps> = ({
             )}
           </button>
         </div>
+
+        {/* Move to another date block if multiple blocks exist */}
+        {availableBlocks && availableBlocks.length > 1 && onMoveToBlock && (
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-1 text-[10px]">
+            <span className="text-gray-400 font-medium shrink-0">Mover a fecha:</span>
+            <select
+              value={currentBlockId || ""}
+              onChange={(e) => {
+                if (e.target.value && e.target.value !== currentBlockId) {
+                  onMoveToBlock(image.id, e.target.value);
+                }
+              }}
+              className="bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-gray-700 text-[10px] font-medium hover:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full truncate"
+            >
+              {availableBlocks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.fecha} {b.titulo ? `(${b.titulo})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Action controls (Move, Delete) */}
         <div className="flex items-center gap-1.5 border-t border-gray-100 pt-2 justify-between">

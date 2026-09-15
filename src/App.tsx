@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ReportMetadata, ReportFooter, ReportImage, PageConfig } from "./types";
+import { ReportMetadata, ReportFooter, ReportImage, PageConfig, DateBlock } from "./types";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { ImageItem } from "./components/ImageItem";
 import { PagePreviewSheet } from "./components/PagePreviewSheet";
-import { generateReportPDF } from "./utils/pdfGenerator";
+import { generateReportPDF, buildPagesFromBlocks } from "./utils/pdfGenerator";
 import {
   Camera,
   Upload,
@@ -17,11 +17,14 @@ import {
   RotateCw,
   Maximize2,
   Minimize2,
-  HelpCircle,
   FileCheck,
   Sparkles,
   Layers,
-  Info
+  Info,
+  Calendar,
+  CalendarDays,
+  FolderPlus,
+  ArrowUpDown
 } from "lucide-react";
 
 // Pre-defined demo photos matching COMEXA's domain (CCTV, Alarms, Access Control, Fire, Electrical Maintenance)
@@ -87,7 +90,17 @@ export default function App() {
     expediente: "EXP. NO: 3998-15",
   });
 
-  const [images, setImages] = useState<ReportImage[]>([]);
+  // State organized by Date Blocks (Secciones por Fecha)
+  const [dateBlocks, setDateBlocks] = useState<DateBlock[]>([
+    {
+      id: "block-1",
+      fecha: "11/06/2026",
+      titulo: "Evidencia de equipos Nvr´s USB",
+      images: [],
+    },
+  ]);
+  const [activeBlockId, setActiveBlockId] = useState<string>("block-1");
+
   const [pageConfigs, setPageConfigs] = useState<PageConfig[]>([]);
   const [viewMode, setViewMode] = useState<"edit" | "print">("edit");
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -95,7 +108,8 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
   // Hidden file inputs refs
-  const bulkFileInputRef = useRef<HTMLInputElement>(null);
+  const blockFileInputRef = useRef<HTMLInputElement>(null);
+  const targetBlockUploadRef = useRef<string | null>(null);
   const cellFileInputRef = useRef<HTMLInputElement>(null);
   const targetCellRef = useRef<{ pageIndex: number; slotIdx: number } | null>(null);
 
@@ -112,10 +126,51 @@ export default function App() {
     }
   }, [toast]);
 
-  // --- CLIPBOARD GLOBAL PASTE SUPPORT (TELEGRAM, SNIPPING TOOL, ETC) ---
+  // Active block reference
+  const activeBlock = dateBlocks.find((b) => b.id === activeBlockId) || dateBlocks[0] || {
+    id: "block-1",
+    fecha: metadata.fechaInventario,
+    titulo: "",
+    images: [],
+  };
+
+  // Build unified pages structure
+  const pages = buildPagesFromBlocks(dateBlocks, metadata);
+  const totalPages = pages.length;
+  const isVideo = metadata.reportType === "extraccion_video";
+
+  const totalImagesCount = dateBlocks.reduce(
+    (acc, b) => acc + b.images.filter((img) => !img.isBlank && img.url).length,
+    0
+  );
+
+  // Synchronize page configs with pages
+  useEffect(() => {
+    setPageConfigs((prev) => {
+      return pages.map((page) => {
+        const existing = prev.find(
+          (c) => c.pageIndex === page.pageIndex && c.blockId === page.blockId
+        );
+        if (existing) {
+          return {
+            ...existing,
+            fecha: page.fecha,
+          };
+        }
+        return {
+          pageIndex: page.pageIndex,
+          blockId: page.blockId,
+          fecha: page.fecha,
+          subHeader: page.subHeaderDefault,
+          showSubHeader: !page.isCover,
+        };
+      });
+    });
+  }, [totalPages, dateBlocks, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType, isVideo]);
+
+  // --- CLIPBOARD GLOBAL PASTE SUPPORT ---
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
-      // If user is editing a text field, let paste go through normally
       const activeEl = document.activeElement;
       if (
         activeEl &&
@@ -136,7 +191,7 @@ export default function App() {
           const file = item.getAsFile();
           if (file) {
             const dateStr = new Date().toLocaleTimeString().replace(/:/g, "-");
-            const newFile = new File([file], `Pegado_Telegram_${dateStr}.png`, {
+            const newFile = new File([file], `Captura_${dateStr}.png`, {
               type: file.type,
             });
             imageFiles.push(newFile);
@@ -146,9 +201,9 @@ export default function App() {
 
       if (imageFiles.length > 0) {
         e.preventDefault();
-        processAndAddFiles(imageFiles);
+        processAndAddFilesToBlock(imageFiles, activeBlock.id);
         showToast(
-          `Se pegó ${imageFiles.length === 1 ? "1 imagen" : `${imageFiles.length} imágenes`} desde el portapapeles`
+          `Se pegó ${imageFiles.length === 1 ? "1 imagen" : `${imageFiles.length} imágenes`} en el bloque de ${activeBlock.fecha}`
         );
       }
     };
@@ -157,95 +212,57 @@ export default function App() {
     return () => {
       window.removeEventListener("paste", handleGlobalPaste);
     };
-  }, [images]);
+  }, [activeBlock.id, activeBlock.fecha]);
 
-  // --- AUTOMATIC SUBHEADER GENERATION ---
-  // Create / update page subheader configurations whenever images count or metadata changes
-  const isVideo = metadata.reportType === "extraccion_video";
-  const pageSize = 4;
-  const totalPages = isVideo
-    ? 1 + Math.max(1, Math.ceil(images.length / 4))
-    : Math.max(1, Math.ceil(images.length / 4));
+  // --- FILE PROCESSING HELPERS ---
+  const processAndAddFilesToBlock = (filesList: File[], targetBlockId: string) => {
+    const filePromises = filesList.map(
+      (file) =>
+        new Promise<ReportImage>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+              url: reader.result as string,
+              name: file.name,
+              size: file.size,
+              rotation: 0,
+              fit: "contain",
+            });
+          };
+          reader.readAsDataURL(file);
+        })
+    );
 
-  useEffect(() => {
-    setPageConfigs((prev) => {
-      const updated: PageConfig[] = [];
-      for (let i = 0; i < totalPages; i++) {
-        const existing = prev.find((c) => c.pageIndex === i);
-        if (existing) {
-          updated.push(existing);
-        } else {
-          updated.push({
-            pageIndex: i,
-            subHeader: isVideo
-              ? "Evidencia de equipos Nvr´s USB"
-              : `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
-            showSubHeader: true,
-          });
-        }
-      }
-      return updated;
+    Promise.all(filePromises).then((newImgs) => {
+      setDateBlocks((prev) =>
+        prev.map((block) => {
+          if (block.id !== targetBlockId) return block;
+          return {
+            ...block,
+            images: [...block.images.filter((img) => !img.isBlank), ...newImgs],
+          };
+        })
+      );
+      showToast(
+        `Se agregaron ${newImgs.length} foto${newImgs.length !== 1 ? "s" : ""} al bloque`
+      );
     });
-  }, [totalPages, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType, isVideo]);
-
-  // --- HANDLERS ---
-  const handleBulkUploadClick = () => {
-    bulkFileInputRef.current?.click();
   };
 
-  const handleBulkFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBlockUploadClick = (blockId: string) => {
+    targetBlockUploadRef.current = blockId;
+    setActiveBlockId(blockId);
+    blockFileInputRef.current?.click();
+  };
+
+  const handleBlockFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    processAndAddFiles(Array.from(files));
-    e.target.value = ""; // Reset
-  };
-
-  const processAndAddFiles = (filesList: File[]) => {
-    filesList.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newImg: ReportImage = {
-          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-          url: reader.result as string,
-          name: file.name,
-          size: file.size,
-          rotation: 0,
-          fit: "contain",
-        };
-        setImages((prev) => [...prev.filter((img) => !img.isBlank), newImg]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleInsertImageAtCell = (file: File, pageIndex: number, slotIdx: number) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newImg: ReportImage = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-        url: reader.result as string,
-        name: file.name,
-        size: file.size,
-        rotation: 0,
-        fit: "contain",
-      };
-
-      const targetIdx = isVideo
-        ? (pageIndex - 1) * 4 + slotIdx
-        : pageIndex * 4 + slotIdx;
-      setImages((prev) => {
-        const validImages = prev.filter((img) => !img.isBlank && img.url);
-        const updated = [...validImages];
-        if (targetIdx < updated.length) {
-          updated[targetIdx] = newImg;
-        } else {
-          updated.push(newImg);
-        }
-        return updated;
-      });
-      showToast(`Imagen colocada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
-    };
-    reader.readAsDataURL(file);
+    const targetBlockId = targetBlockUploadRef.current || activeBlock.id;
+    if (!files || files.length === 0 || !targetBlockId) return;
+    processAndAddFilesToBlock(Array.from(files), targetBlockId);
+    e.target.value = "";
+    targetBlockUploadRef.current = null;
   };
 
   // Uploading directly from an empty preview slot cell
@@ -260,102 +277,247 @@ export default function App() {
     if (!files || files.length === 0 || !target) return;
 
     handleInsertImageAtCell(files[0], target.pageIndex, target.slotIdx);
-    e.target.value = ""; // Reset
+    e.target.value = "";
     targetCellRef.current = null;
   };
 
-  // Loading maintenance sample presets
+  const handleInsertImageAtCell = (file: File, pageIndex: number, slotIdx: number) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newImg: ReportImage = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        url: reader.result as string,
+        name: file.name,
+        size: file.size,
+        rotation: 0,
+        fit: "contain",
+      };
+
+      const targetPage = pages[pageIndex];
+      if (!targetPage || !targetPage.blockId) return;
+
+      const blockId = targetPage.blockId;
+      const targetIdxInBlock = (targetPage.pageInBlock || 0) * 4 + slotIdx;
+
+      setDateBlocks((prev) =>
+        prev.map((block) => {
+          if (block.id !== blockId) return block;
+          const validImages = block.images.filter((img) => !img.isBlank && img.url);
+          const updated = [...validImages];
+          if (targetIdxInBlock < updated.length) {
+            updated[targetIdxInBlock] = newImg;
+          } else {
+            updated.push(newImg);
+          }
+          return { ...block, images: updated };
+        })
+      );
+      showToast(`Imagen colocada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- DATE BLOCKS MANAGEMENT ---
+  const handleAddDateBlock = () => {
+    const newId = `block-${Date.now()}`;
+    const newBlock: DateBlock = {
+      id: newId,
+      fecha: metadata.fechaInventario || new Date().toLocaleDateString("es-MX"),
+      titulo: `Día ${dateBlocks.length + 1}`,
+      images: [],
+    };
+    setDateBlocks((prev) => [...prev, newBlock]);
+    setActiveBlockId(newId);
+    showToast("Nuevo bloque de fecha agregado");
+  };
+
+  const handleDeleteDateBlock = (blockId: string) => {
+    if (dateBlocks.length <= 1) {
+      showToast("Debe existir al menos un bloque de fecha", "info");
+      return;
+    }
+    if (confirm("¿Está seguro de que desea eliminar este bloque de fecha y sus imágenes?")) {
+      setDateBlocks((prev) => prev.filter((b) => b.id !== blockId));
+      if (activeBlockId === blockId) {
+        const remaining = dateBlocks.filter((b) => b.id !== blockId);
+        setActiveBlockId(remaining[0].id);
+      }
+      showToast("Bloque de fecha eliminado");
+    }
+  };
+
+  const handleUpdateDateBlock = (blockId: string, fields: Partial<DateBlock>) => {
+    setDateBlocks((prev) =>
+      prev.map((b) => (b.id === blockId ? { ...b, ...fields } : b))
+    );
+  };
+
+  // Loading maintenance sample presets (2 blocks with different dates)
   const handleLoadDemo = () => {
-    const processedDemoImages = DEMO_PHOTOS.map((photo, i) => ({
-      id: `demo-${i}-${Math.random().toString(36).substring(2, 5)}`,
+    const block1Images: ReportImage[] = DEMO_PHOTOS.slice(0, 4).map((photo, i) => ({
+      id: `demo-1-${i}-${Math.random().toString(36).substring(2, 5)}`,
       url: photo.url,
       name: photo.name,
       size: photo.size,
       rotation: 0 as const,
       fit: "contain" as const,
     }));
-    setImages((prev) => [...prev, ...processedDemoImages]);
+
+    const block2Images: ReportImage[] = DEMO_PHOTOS.slice(4, 8).map((photo, i) => ({
+      id: `demo-2-${i}-${Math.random().toString(36).substring(2, 5)}`,
+      url: photo.url,
+      name: photo.name,
+      size: photo.size,
+      rotation: 0 as const,
+      fit: "contain" as const,
+    }));
+
+    setDateBlocks([
+      {
+        id: "block-demo-1",
+        fecha: metadata.fechaInventario || "11/06/2026",
+        titulo: isVideo ? "Extracción NVRs y Cámaras Exteriores" : "Mantenimiento CCTV y Gabinetes",
+        images: block1Images,
+      },
+      {
+        id: "block-demo-2",
+        fecha: "12/06/2026",
+        titulo: isVideo ? "Revisión Control de Acceso y UPS" : "Detección Incendio y Baterías",
+        images: block2Images,
+      },
+    ]);
+    setActiveBlockId("block-demo-1");
     setViewMode("edit");
+    showToast("Ejemplo cargado con 2 bloques de fechas organizadas");
   };
 
-  // Clear all list
+  // Clear all images
   const handleClearAll = () => {
-    if (confirm("¿Está seguro de que desea eliminar todas las imágenes actuales?")) {
-      setImages([]);
+    if (confirm("¿Está seguro de que desea limpiar todas las imágenes?")) {
+      setDateBlocks([
+        {
+          id: "block-1",
+          fecha: metadata.fechaInventario || "11/06/2026",
+          titulo: "Evidencia Nvr´s USB",
+          images: [],
+        },
+      ]);
+      setActiveBlockId("block-1");
       setPageConfigs([]);
+      showToast("Se limpiaron todas las imágenes");
     }
   };
 
-  // --- IMAGE ADJUSTMENT CONTROLS ---
+  // --- IMAGE CONTROLS ---
   const handleRotateImage = (id: string) => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === id) {
-          const nextRotation = ((img.rotation + 90) % 360) as 0 | 90 | 180 | 270;
-          return { ...img, rotation: nextRotation };
-        }
-        return img;
-      })
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.map((img) => {
+          if (img.id === id) {
+            const nextRotation = ((img.rotation + 90) % 360) as 0 | 90 | 180 | 270;
+            return { ...img, rotation: nextRotation };
+          }
+          return img;
+        }),
+      }))
     );
   };
 
   const handleToggleFit = (id: string) => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === id) {
-          return { ...img, fit: img.fit === "contain" ? "cover" : "contain" };
-        }
-        return img;
-      })
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.map((img) => {
+          if (img.id === id) {
+            return { ...img, fit: img.fit === "contain" ? "cover" : "contain" };
+          }
+          return img;
+        }),
+      }))
     );
   };
 
   const handleDeleteImage = (id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id && !img.isBlank));
-    showToast("Imagen eliminada y lista de evidencias recorrida");
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.filter((img) => img.id !== id && !img.isBlank),
+      }))
+    );
+    showToast("Imagen eliminada");
   };
 
-  const handleCompactImages = () => {
-    setImages((prev) => prev.filter((img) => !img.isBlank && !!img.url));
-    showToast("Imágenes recorridas y espacios en blanco eliminados");
-  };
+  const handleMoveImageInBlock = (blockId: string, index: number, direction: "left" | "right") => {
+    setDateBlocks((prev) =>
+      prev.map((b) => {
+        if (b.id !== blockId) return b;
+        const targetIdx = direction === "left" ? index - 1 : index + 1;
+        if (targetIdx < 0 || targetIdx >= b.images.length) return b;
 
-  const handleUpdateCoverImage = (url: string) => {
-    setMetadata((prev) => ({ ...prev, coverImageUrl: url }));
-    showToast("Imagen de portada actualizada con éxito");
-  };
-
-  const handleMoveImage = (index: number, direction: "left" | "right") => {
-    const targetIdx = direction === "left" ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= images.length) return;
-
-    setImages((prev) => {
-      const updated = [...prev];
-      const temp = updated[index];
-      updated[index] = updated[targetIdx];
-      updated[targetIdx] = temp;
-      return updated;
-    });
-  };
-
-  // --- BATCH ACTION CONTROLS ---
-  const handleRotateAll = () => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.isBlank) return img;
-        const nextRotation = ((img.rotation + 90) % 360) as 0 | 90 | 180 | 270;
-        return { ...img, rotation: nextRotation };
+        const updated = [...b.images];
+        const temp = updated[index];
+        updated[index] = updated[targetIdx];
+        updated[targetIdx] = temp;
+        return { ...b, images: updated };
       })
     );
   };
 
-  const handleToggleFitAll = (mode: "contain" | "cover") => {
-    setImages((prev) =>
-      prev.map((img) => (img.isBlank ? img : { ...img, fit: mode }))
-    );
+  const handleMoveImageToBlock = (imageId: string, targetBlockId: string) => {
+    let movedImage: ReportImage | null = null;
+
+    setDateBlocks((prev) => {
+      // 1. Remove from source
+      const cleaned = prev.map((b) => {
+        const found = b.images.find((img) => img.id === imageId);
+        if (found) {
+          movedImage = found;
+          return { ...b, images: b.images.filter((img) => img.id !== imageId) };
+        }
+        return b;
+      });
+
+      if (!movedImage) return prev;
+
+      // 2. Add to target
+      return cleaned.map((b) => {
+        if (b.id === targetBlockId) {
+          return { ...b, images: [...b.images, movedImage!] };
+        }
+        return b;
+      });
+    });
+
+    showToast("Imagen movida al nuevo bloque de fecha");
   };
 
-  const handleInsertSpacer = () => {
+  // Batch actions
+  const handleRotateAll = () => {
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.map((img) => {
+          if (img.isBlank) return img;
+          const nextRotation = ((img.rotation + 90) % 360) as 0 | 90 | 180 | 270;
+          return { ...img, rotation: nextRotation };
+        }),
+      }))
+    );
+    showToast("Todas las imágenes fueron rotadas 90°");
+  };
+
+  const handleToggleFitAll = (mode: "contain" | "cover") => {
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.map((img) => (img.isBlank ? img : { ...img, fit: mode })),
+      }))
+    );
+    showToast(`Todas las imágenes en modo ${mode === "contain" ? "Ajustar" : "Llenar"}`);
+  };
+
+  const handleInsertSpacer = (blockId: string) => {
     const spacer: ReportImage = {
       id: `spacer-${Math.random().toString(36).substring(2, 9)}`,
       url: "",
@@ -365,10 +527,28 @@ export default function App() {
       fit: "contain",
       isBlank: true,
     };
-    setImages((prev) => [...prev, spacer]);
+    setDateBlocks((prev) =>
+      prev.map((b) => (b.id === blockId ? { ...b, images: [...b.images, spacer] } : b))
+    );
+    showToast("Espacio en blanco añadido al bloque");
   };
 
-  // --- PAGE SPECIFIC CONFIG ACTIONS ---
+  const handleCompactImages = () => {
+    setDateBlocks((prev) =>
+      prev.map((b) => ({
+        ...b,
+        images: b.images.filter((img) => !img.isBlank && !!img.url),
+      }))
+    );
+    showToast("Imágenes recorridas y espacios vacíos eliminados");
+  };
+
+  const handleUpdateCoverImage = (url: string) => {
+    setMetadata((prev) => ({ ...prev, coverImageUrl: url }));
+    showToast("Imagen de portada actualizada con éxito");
+  };
+
+  // --- PAGE CONFIG ACTIONS ---
   const handleUpdatePageConfig = (pageIndex: number, updatedFields: Partial<PageConfig>) => {
     setPageConfigs((prev) =>
       prev.map((config) => {
@@ -393,12 +573,11 @@ export default function App() {
 
   // --- EXPORT TRIGGERS ---
   const triggerBrowserPrint = () => {
-    // Standard print dialog styled perfectly by CSS
     window.print();
   };
 
   const triggerPDFDownload = async () => {
-    if (images.length === 0) {
+    if (totalImagesCount === 0) {
       alert("Por favor cargue al menos una imagen antes de exportar.");
       return;
     }
@@ -410,7 +589,7 @@ export default function App() {
       const doc = await generateReportPDF(
         metadata,
         footer,
-        images,
+        dateBlocks,
         pageConfigs,
         (progress) => {
           setPdfProgress(Math.min(95, 10 + Math.round(progress * 0.85)));
@@ -418,8 +597,6 @@ export default function App() {
       );
 
       setPdfProgress(100);
-      // Clean up sucursal name for file name
-      const isVideo = metadata.reportType === "extraccion_video";
       const cleanName = isVideo
         ? `extraccion_video_${metadata.sucursal.toLowerCase()}_${(metadata.incidenteTask || "sctask").toLowerCase()}.pdf`.replace(/\s+/g, "_")
         : `${metadata.tipoTrabajo.toLowerCase()}_${metadata.sucursal.toLowerCase()}_${metadata.cc}.pdf`.replace(/\s+/g, "_");
@@ -459,21 +636,21 @@ export default function App() {
 
           {/* Quick Stats & Presets */}
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            {images.length === 0 && (
+            {totalImagesCount === 0 && (
               <button
                 type="button"
                 onClick={handleLoadDemo}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 hover:border-amber-500/30 text-xs font-semibold rounded-lg transition-all shadow-xs cursor-pointer"
-                title="Carga fotos de demostración para probar el sistema"
+                title="Carga fotos de demostración con bloques de fecha para probar el sistema"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Cargar Ejemplo
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Cargar Ejemplo (Multi-Fecha)
               </button>
             )}
 
-            {images.length > 0 && (
+            {totalImagesCount > 0 && (
               <>
                 <div className="px-3 py-1.5 bg-slate-800 rounded-lg border border-slate-700 text-xs font-mono font-bold text-slate-300">
-                  {images.length} Foto{images.length !== 1 ? "s" : ""} | {totalPages} Página{totalPages !== 1 ? "s" : ""}
+                  {totalImagesCount} Foto{totalImagesCount !== 1 ? "s" : ""} | {dateBlocks.length} Fecha{dateBlocks.length !== 1 ? "s" : ""} | {totalPages} Pág{totalPages !== 1 ? "s" : ""}
                 </div>
 
                 <button
@@ -504,40 +681,134 @@ export default function App() {
             onChangeFooter={setFooter}
           />
 
-          {/* B. Batch uploader & Spacing controller */}
+          {/* B. Date Blocks & Evidence Uploader */}
           <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-5 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <h2 className="font-semibold text-gray-800 text-sm flex items-center gap-1.5">
-                <Upload className="w-4 h-4 text-indigo-600" /> Cargar Fotos
+                <CalendarDays className="w-4 h-4 text-indigo-600" /> Bloques por Fecha ({dateBlocks.length})
               </h2>
+              <button
+                type="button"
+                onClick={handleAddDateBlock}
+                className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-100 transition-all cursor-pointer"
+                title="Agregar otra fecha o jornada de trabajo"
+              >
+                <Plus className="w-3.5 h-3.5" /> Nueva Fecha
+              </button>
             </div>
 
-            {/* Drag & Drop uploader area */}
-            <div
-              onClick={handleBulkUploadClick}
-              className="border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/20 rounded-xl p-6 text-center cursor-pointer transition-all group flex flex-col items-center gap-2"
-            >
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-105 transition-all">
-                <Camera className="w-6 h-6 stroke-2" />
+            {/* Date Block Selector Tabs */}
+            <div className="flex flex-wrap gap-1.5">
+              {dateBlocks.map((b, idx) => {
+                const isActive = b.id === activeBlock.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setActiveBlockId(b.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                        : "bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
+                    }`}
+                  >
+                    <Calendar className="w-3 h-3 shrink-0" />
+                    <span>{b.fecha || `Fecha ${idx + 1}`}</span>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                        isActive ? "bg-indigo-700 text-indigo-100" : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {b.images.filter((img) => !img.isBlank).length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Block Quick Settings Card */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                  Editando Bloque Activo
+                </span>
+                {dateBlocks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDateBlock(activeBlock.id)}
+                    className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-0.5 cursor-pointer"
+                    title="Eliminar este bloque de fecha"
+                  >
+                    <Trash2 className="w-3 h-3" /> Eliminar
+                  </button>
+                )}
               </div>
-              <p className="text-xs font-bold text-gray-700">Arrastre múltiples imágenes aquí</p>
-              <p className="text-[10px] text-gray-400">O haga clic para examinar archivos</p>
-              <input
-                type="file"
-                ref={bulkFileInputRef}
-                onChange={handleBulkFileInputChange}
-                multiple
-                accept="image/*"
-                className="hidden"
-              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                    Fecha del Bloque
+                  </label>
+                  <input
+                    type="text"
+                    value={activeBlock.fecha}
+                    onChange={(e) =>
+                      handleUpdateDateBlock(activeBlock.id, { fecha: e.target.value })
+                    }
+                    placeholder="DD/MM/AAAA"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                    Título / Jornada
+                  </label>
+                  <input
+                    type="text"
+                    value={activeBlock.titulo || ""}
+                    onChange={(e) =>
+                      handleUpdateDateBlock(activeBlock.id, { titulo: e.target.value })
+                    }
+                    placeholder="Ej. NVRs USB, Día 1"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Drag & Drop uploader area for this active block */}
+              <div
+                onClick={() => handleBlockUploadClick(activeBlock.id)}
+                className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-white hover:bg-indigo-50/20 rounded-xl p-4 text-center cursor-pointer transition-all group flex flex-col items-center gap-1.5"
+              >
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-105 transition-all">
+                  <Camera className="w-5 h-5 stroke-2" />
+                </div>
+                <p className="text-xs font-bold text-gray-700">
+                  Subir fotos para {activeBlock.fecha}
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  Arrastre aquí o haga clic para seleccionar
+                </p>
+              </div>
+
+              <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1">
+                <span>{activeBlock.images.filter((img) => !img.isBlank).length} fotos en esta fecha</span>
+                <button
+                  type="button"
+                  onClick={() => handleInsertSpacer(activeBlock.id)}
+                  className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+                >
+                  + Añadir Espacio Vacío
+                </button>
+              </div>
             </div>
 
             {/* Batch layout quick adjusters */}
-            {images.length > 0 && (
+            {totalImagesCount > 0 && (
               <div className="space-y-2.5 pt-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Acciones por Lote</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Rotate all */}
                   <button
                     type="button"
                     onClick={handleRotateAll}
@@ -546,19 +817,17 @@ export default function App() {
                     <RotateCw className="w-3.5 h-3.5 text-gray-500" /> Rotar Todas 90°
                   </button>
 
-                  {/* Compact / Shift Images */}
                   <button
                     type="button"
                     onClick={handleCompactImages}
                     className="flex items-center justify-center gap-1.5 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 hover:border-indigo-300 rounded-lg text-xs font-semibold transition-all cursor-pointer font-sans"
-                    title="Elimina espacios vacíos y recorre las imágenes de forma continua"
+                    title="Elimina espacios vacíos y recorre las imágenes"
                   >
                     <Layers className="w-3.5 h-3.5 text-indigo-600" /> Recorrer Fotos
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Fit All Contain */}
                   <button
                     type="button"
                     onClick={() => handleToggleFitAll("contain")}
@@ -567,7 +836,6 @@ export default function App() {
                     <Minimize2 className="w-3 h-3 text-gray-500" /> Ajustar Todas
                   </button>
 
-                  {/* Fit All Cover */}
                   <button
                     type="button"
                     onClick={() => handleToggleFitAll("cover")}
@@ -584,9 +852,9 @@ export default function App() {
           <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex gap-3 text-amber-800">
             <Info className="w-5 h-5 flex-shrink-0 stroke-[1.8]" />
             <div className="space-y-1">
-              <h4 className="text-xs font-bold font-display">Consejo Profesional</h4>
+              <h4 className="text-xs font-bold font-display">Organización por Fechas</h4>
               <p className="text-[10px] leading-relaxed font-medium">
-                Las fotos móviles suelen subirse de lado. Usa los botones de <strong>Rotar 90°</strong> en las fotos para alinearlas correctamente. Usa <strong>"Añadir Espacio"</strong> si quieres vaciar un espacio y mover fotos a la siguiente hoja.
+                Cada bloque de fecha inicia automáticamente en una página nueva del reporte. Puede tener diferentes jornadas de trabajo dentro del mismo documento PDF.
               </p>
             </div>
           </div>
@@ -609,7 +877,7 @@ export default function App() {
                     : "text-gray-500 hover:text-gray-900"
                 }`}
               >
-                <SlidersHorizontal className="w-3.5 h-3.5" /> Edición Rápida ({images.length})
+                <SlidersHorizontal className="w-3.5 h-3.5" /> Edición por Fechas ({dateBlocks.length} fechas)
               </button>
               
               <button
@@ -627,10 +895,9 @@ export default function App() {
 
             {/* Action buttons (Download & Print PDF) */}
             <div className="flex items-center gap-2">
-              {/* Browser Print Vector Button */}
               <button
                 type="button"
-                disabled={images.length === 0}
+                disabled={totalImagesCount === 0}
                 onClick={triggerBrowserPrint}
                 className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-gray-200 transition-all cursor-pointer"
                 title="Abre la ventana de impresión del navegador. Excelente calidad vectorial."
@@ -638,13 +905,12 @@ export default function App() {
                 <Printer className="w-4 h-4" /> Imprimir Reporte
               </button>
 
-              {/* PDF direct download button */}
               <button
                 type="button"
-                disabled={images.length === 0 || isGeneratingPdf}
+                disabled={totalImagesCount === 0 || isGeneratingPdf}
                 onClick={triggerPDFDownload}
                 className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                title="Generar y descargar el PDF completo del reporte"
+                title="Generar y descargar el PDF completo del reporte con todos los bloques de fechas"
               >
                 {isGeneratingPdf ? (
                   <>
@@ -661,7 +927,7 @@ export default function App() {
 
           {/* B. Preview Screens */}
           <div className="flex-1 min-h-[500px]">
-            {images.length === 0 ? (
+            {totalImagesCount === 0 ? (
               /* Empty Placeholder display state */
               <div className="no-print bg-white rounded-xl shadow-xs border border-gray-100 p-12 text-center h-full flex flex-col items-center justify-center gap-4">
                 <div className="p-4 bg-indigo-50 text-indigo-600 rounded-full animate-pulse">
@@ -670,7 +936,7 @@ export default function App() {
                 <div className="space-y-1.5 max-w-sm">
                   <h3 className="font-bold text-gray-800 text-base">Cargue sus fotos para empezar</h3>
                   <p className="text-gray-500 text-xs leading-relaxed font-medium">
-                    Arrastre sus fotos de mantenimiento aquí o haga clic en "Cargar Ejemplo" para rellenar de inmediato con fotos de prueba del sistema.
+                    Organice sus fotos por fechas o jornadas de trabajo. Cada fecha se acomodará en su propia sección de páginas.
                   </p>
                 </div>
                 <button
@@ -678,46 +944,139 @@ export default function App() {
                   onClick={handleLoadDemo}
                   className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 mt-2 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> Cargar Fotos de Ejemplo
+                  <Sparkles className="w-3.5 h-3.5" /> Cargar Ejemplo (2 Fechas)
                 </button>
               </div>
             ) : viewMode === "edit" ? (
-              /* QUICK EDITING MODE: GRID VIEW */
-              <div className="no-print space-y-4">
-                <div className="flex justify-between items-center bg-indigo-50/50 p-3 rounded-lg border border-indigo-100/40">
-                  <div className="flex items-center gap-1.5">
-                    <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
-                    <span className="text-xs font-bold text-indigo-900">
-                      Modo Reordenamiento y Ajuste de Fotos ({images.length} fotos cargadas)
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 font-medium">
-                    Cambie posiciones usando las flechas de cada tarjeta
-                  </span>
-                </div>
+              /* QUICK EDITING MODE: GROUPED BY DATE BLOCKS */
+              <div className="no-print space-y-6">
+                {dateBlocks.map((block, blockIndex) => {
+                  const availableBlocksForDropdown = dateBlocks.map((b) => ({
+                    id: b.id,
+                    fecha: b.fecha,
+                    titulo: b.titulo,
+                  }));
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {images.map((image, index) => (
-                    <ImageItem
-                      key={image.id}
-                      image={image}
-                      index={index}
-                      total={images.length}
-                      onRotate={handleRotateImage}
-                      onToggleFit={handleToggleFit}
-                      onDelete={handleDeleteImage}
-                      onMove={handleMoveImage}
-                    />
-                  ))}
+                  return (
+                    <div
+                      key={block.id}
+                      className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden"
+                    >
+                      {/* Block Section Header */}
+                      <div className="bg-slate-50 border-b border-gray-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
+                            <Calendar className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                Fecha #{blockIndex + 1}:
+                              </span>
+                              <input
+                                type="text"
+                                value={block.fecha}
+                                onChange={(e) =>
+                                  handleUpdateDateBlock(block.id, { fecha: e.target.value })
+                                }
+                                placeholder="DD/MM/AAAA"
+                                className="font-bold text-sm text-gray-900 bg-white border border-gray-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                              />
+                            </div>
+                            <input
+                              type="text"
+                              value={block.titulo || ""}
+                              onChange={(e) =>
+                                handleUpdateDateBlock(block.id, { titulo: e.target.value })
+                              }
+                              placeholder="Título de la sección (ej. Extracción NVR USB)"
+                              className="text-xs text-gray-600 bg-transparent border-b border-dashed border-gray-300 hover:border-indigo-400 focus:border-indigo-500 focus:outline-none w-64 mt-1"
+                            />
+                          </div>
+                        </div>
 
-                  {/* Quick Add Blank space tile in the grid */}
+                        {/* Badges & Block Actions */}
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <span className="text-xs font-mono font-semibold bg-gray-200 text-gray-700 px-2.5 py-1 rounded-md">
+                            {block.images.length} fotos • {Math.max(1, Math.ceil(block.images.length / 4))} pág(s)
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleBlockUploadClick(block.id)}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg border border-indigo-200 transition-all cursor-pointer"
+                            title="Subir más fotos a esta fecha"
+                          >
+                            <Upload className="w-3.5 h-3.5" /> Subir Fotos
+                          </button>
+
+                          {dateBlocks.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDateBlock(block.id)}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                              title="Eliminar este bloque"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Images Grid for this Date Block */}
+                      <div className="p-4">
+                        {block.images.length === 0 ? (
+                          <div
+                            onClick={() => handleBlockUploadClick(block.id)}
+                            className="border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/10 rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-2 text-gray-400 hover:text-indigo-600"
+                          >
+                            <Plus className="w-8 h-8 stroke-1.5" />
+                            <span className="text-xs font-semibold">
+                              No hay fotos en esta fecha. Haga clic para agregar imágenes.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {block.images.map((image, imgIdx) => (
+                              <ImageItem
+                                key={image.id}
+                                image={image}
+                                index={imgIdx}
+                                total={block.images.length}
+                                onRotate={handleRotateImage}
+                                onToggleFit={handleToggleFit}
+                                onDelete={handleDeleteImage}
+                                onMove={(idx, dir) => handleMoveImageInBlock(block.id, idx, dir)}
+                                currentBlockId={block.id}
+                                availableBlocks={availableBlocksForDropdown}
+                                onMoveToBlock={handleMoveImageToBlock}
+                              />
+                            ))}
+
+                            {/* Quick Add Blank Space in this block */}
+                            <button
+                              type="button"
+                              onClick={() => handleInsertSpacer(block.id)}
+                              className="border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/10 rounded-xl p-4 flex flex-col justify-center items-center gap-2 text-gray-400 hover:text-indigo-600 transition-all h-56 cursor-pointer"
+                            >
+                              <Plus className="w-6 h-6 stroke-1.5" />
+                              <span className="text-xs font-semibold">Añadir Espacio Vacío</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Bottom Add New Date Block Button */}
+                <div className="flex justify-center pt-2">
                   <button
                     type="button"
-                    onClick={handleInsertSpacer}
-                    className="border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/10 rounded-xl p-4 flex flex-col justify-center items-center gap-2 text-gray-400 hover:text-indigo-600 transition-all h-56 cursor-pointer"
+                    onClick={handleAddDateBlock}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
                   >
-                    <Plus className="w-6 h-6 stroke-1.5" />
-                    <span className="text-xs font-semibold">Añadir Espacio Vacío</span>
+                    <Plus className="w-4 h-4" /> Agregar Nueva Fecha / Bloque
                   </button>
                 </div>
               </div>
@@ -731,48 +1090,54 @@ export default function App() {
                   <div className="space-y-1">
                     <h4 className="text-xs font-bold text-slate-800">Vista de Impresión Real (Hojas Carta)</h4>
                     <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
-                      Cada hoja muestra hasta 4 imágenes (cuadrícula de 2x2). El subencabezado central (ej. <strong>"MANTENIMIENTO 11/06/2026"</strong>) puede editarse individualmente en cada página haciendo clic en él. Use los selectores de abajo para ocultar o mostrar el subencabezado por página.
+                      Cada bloque de fecha inicia en una hoja nueva. Cada hoja muestra hasta 4 imágenes en cuadrícula 2x2. Los subencabezados y fechas se reflejan automáticamente en cada hoja.
                     </p>
                   </div>
                 </div>
 
-                {Array.from({ length: totalPages }).map((_, pageIdx) => {
-                  const currentConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
-                    pageIndex: pageIdx,
-                    subHeader: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
-                    showSubHeader: true,
+                {pages.map((page) => {
+                  const currentConfig = pageConfigs.find((c) => c.pageIndex === page.pageIndex) || {
+                    pageIndex: page.pageIndex,
+                    subHeader: page.subHeaderDefault,
+                    showSubHeader: !page.isCover,
                   };
 
                   return (
-                    <div key={pageIdx} className="space-y-2.5 w-full flex flex-col items-center">
+                    <div key={page.pageIndex} className="space-y-2.5 w-full flex flex-col items-center">
                       
                       {/* Interactive Sheet Metadata and Config controls (Hovering above the paper preview) */}
                       <div className="w-full max-w-[215.9mm] bg-white border border-gray-150 rounded-lg p-3 flex justify-between items-center shadow-2xs">
-                        <span className="text-xs font-bold text-gray-500">
-                          Configuración Hoja #{pageIdx + 1} de {totalPages}
-                        </span>
-
-                        <div className="flex gap-4">
-                          {/* Toggle subheader display */}
-                          <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={currentConfig.showSubHeader}
-                              onChange={() => handleTogglePageSubheader(pageIdx)}
-                              className="w-3.5 h-3.5 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="text-xs font-medium text-gray-600">Mostrar subencabezado</span>
-                          </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-700">
+                            Hoja #{page.pageIndex + 1} de {totalPages}
+                          </span>
+                          <span className="text-[10px] bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full border border-indigo-100">
+                            {page.isCover ? "Portada CSIS" : `Fecha: ${page.fecha}`}
+                          </span>
                         </div>
+
+                        {!page.isCover && (
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={currentConfig.showSubHeader}
+                                onChange={() => handleTogglePageSubheader(page.pageIndex)}
+                                className="w-3.5 h-3.5 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-xs font-medium text-gray-600">Mostrar subencabezado</span>
+                            </label>
+                          </div>
+                        )}
                       </div>
 
                       {/* The physical Letter Sheet layout */}
                       <PagePreviewSheet
-                        pageIndex={pageIdx}
+                        pageIndex={page.pageIndex}
                         totalPages={totalPages}
                         metadata={metadata}
                         footer={footer}
-                        images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * pageSize, pageIdx * pageSize)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+                        images={page.images}
                         pageConfig={currentConfig}
                         onUpdatePageConfig={handleUpdatePageConfig}
                         onCellImageRotate={handleRotateImage}
@@ -792,24 +1157,22 @@ export default function App() {
       </main>
 
       {/* 3. SECRET PRINT-ONLY ELEMENT */}
-      {/* This element is completely hidden during normal UI view, but when window.print() is triggered, 
-          it takes over the entire browser viewport and formats the pages with vector fonts and margins */}
       <div className="hidden print:block bg-white w-full h-full">
-        {Array.from({ length: totalPages }).map((_, pageIdx) => {
-          const currentConfig = pageConfigs.find((c) => c.pageIndex === pageIdx) || {
-            pageIndex: pageIdx,
-            subHeader: `${metadata.tipoTrabajo} ${metadata.fechaInventario}`,
-            showSubHeader: true,
+        {pages.map((page) => {
+          const currentConfig = pageConfigs.find((c) => c.pageIndex === page.pageIndex) || {
+            pageIndex: page.pageIndex,
+            subHeader: page.subHeaderDefault,
+            showSubHeader: !page.isCover,
           };
 
           return (
             <PagePreviewSheet
-              key={`print-sheet-${pageIdx}`}
-              pageIndex={pageIdx}
+              key={`print-sheet-${page.pageIndex}`}
+              pageIndex={page.pageIndex}
               totalPages={totalPages}
               metadata={metadata}
               footer={footer}
-              images={isVideo ? (pageIdx === 0 ? [] : images.slice((pageIdx - 1) * pageSize, pageIdx * pageSize)) : images.slice(pageIdx * pageSize, (pageIdx + 1) * pageSize)}
+              images={page.images}
               pageConfig={currentConfig}
               onUpdatePageConfig={handleUpdatePageConfig}
               onCellImageRotate={handleRotateImage}
@@ -830,7 +1193,15 @@ export default function App() {
         </div>
       )}
 
-      {/* Hidden Cell upload element triggered programmatically */}
+      {/* Hidden File inputs */}
+      <input
+        type="file"
+        ref={blockFileInputRef}
+        onChange={handleBlockFileInputChange}
+        multiple
+        accept="image/*"
+        className="hidden"
+      />
       <input
         type="file"
         ref={cellFileInputRef}
