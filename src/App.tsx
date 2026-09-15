@@ -28,6 +28,19 @@ import {
 } from "lucide-react";
 
 // Pre-defined demo photos matching COMEXA's domain (CCTV, Alarms, Access Control, Fire, Electrical Maintenance)
+const extractImageFiles = (e: React.DragEvent): File[] => {
+  const files: File[] = [];
+  if (e.dataTransfer && e.dataTransfer.files) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const file = e.dataTransfer.files[i];
+      if (file.type.startsWith("image/") || /\.(jpe?g|png|webp|bmp|gif|tiff?)$/i.test(file.name)) {
+        files.push(file);
+      }
+    }
+  }
+  return files;
+};
+
 const DEMO_PHOTOS = [
   {
     url: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=600&q=80",
@@ -107,6 +120,11 @@ export default function App() {
   const [pdfProgress, setPdfProgress] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
+  // Drag & drop UI states
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
+  const [isDraggingEmpty, setIsDraggingEmpty] = useState(false);
+  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+
   // Hidden file inputs refs
   const blockFileInputRef = useRef<HTMLInputElement>(null);
   const targetBlockUploadRef = useRef<string | null>(null);
@@ -167,6 +185,22 @@ export default function App() {
       });
     });
   }, [totalPages, dateBlocks, metadata.tipoTrabajo, metadata.fechaInventario, metadata.reportType, isVideo]);
+
+  // Global drag-and-drop listener to prevent browser from navigating away on dropped files outside dropzones
+  useEffect(() => {
+    const handleGlobalDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    const handleGlobalDrop = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", handleGlobalDragOver);
+    window.addEventListener("drop", handleGlobalDrop);
+    return () => {
+      window.removeEventListener("dragover", handleGlobalDragOver);
+      window.removeEventListener("drop", handleGlobalDrop);
+    };
+  }, []);
 
   // --- CLIPBOARD GLOBAL PASTE SUPPORT ---
   useEffect(() => {
@@ -282,39 +316,75 @@ export default function App() {
   };
 
   const handleInsertImageAtCell = (file: File, pageIndex: number, slotIdx: number) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newImg: ReportImage = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-        url: reader.result as string,
-        name: file.name,
-        size: file.size,
-        rotation: 0,
-        fit: "contain",
-      };
+    handleInsertFilesAtCell([file], pageIndex, slotIdx);
+  };
 
-      const targetPage = pages[pageIndex];
-      if (!targetPage || !targetPage.blockId) return;
+  const handleInsertFilesAtCell = (files: File[], pageIndex: number, slotIdx: number) => {
+    if (!files || files.length === 0) return;
+    const targetPage = pages[pageIndex];
+    if (!targetPage || !targetPage.blockId) return;
 
-      const blockId = targetPage.blockId;
-      const targetIdxInBlock = (targetPage.pageInBlock || 0) * 4 + slotIdx;
+    const blockId = targetPage.blockId;
+    const startIdxInBlock = (targetPage.pageInBlock || 0) * 4 + slotIdx;
 
+    const filePromises = files.map(
+      (file) =>
+        new Promise<ReportImage>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+              url: reader.result as string,
+              name: file.name,
+              size: file.size,
+              rotation: 0,
+              fit: "contain",
+            });
+          };
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(filePromises).then((newImgs) => {
       setDateBlocks((prev) =>
         prev.map((block) => {
           if (block.id !== blockId) return block;
-          const validImages = block.images.filter((img) => !img.isBlank && img.url);
-          const updated = [...validImages];
-          if (targetIdxInBlock < updated.length) {
-            updated[targetIdxInBlock] = newImg;
-          } else {
-            updated.push(newImg);
-          }
+          const updated = [...block.images];
+          newImgs.forEach((newImg, offset) => {
+            const targetPos = startIdxInBlock + offset;
+            while (updated.length < targetPos) {
+              updated.push({
+                id: `spacer-${Math.random().toString(36).substring(2, 9)}`,
+                url: "",
+                name: "Espacio en blanco",
+                size: 0,
+                rotation: 0,
+                fit: "contain",
+                isBlank: true,
+              });
+            }
+            if (targetPos < updated.length) {
+              updated[targetPos] = newImg;
+            } else {
+              updated.push(newImg);
+            }
+          });
           return { ...block, images: updated };
         })
       );
-      showToast(`Imagen colocada en la celda ${slotIdx + 1} de la página ${pageIndex + 1}`);
-    };
-    reader.readAsDataURL(file);
+      showToast(
+        files.length === 1
+          ? `Foto agregada en Celda ${slotIdx + 1} (Pág. ${pageIndex + 1})`
+          : `${files.length} fotos colocadas a partir de Celda ${slotIdx + 1}`
+      );
+    });
+  };
+
+  const handleDropFilesOnPage = (files: File[], pageIndex: number) => {
+    if (!files || files.length === 0) return;
+    const targetPage = pages[pageIndex];
+    if (!targetPage || !targetPage.blockId) return;
+    processAndAddFilesToBlock(files, targetPage.blockId);
   };
 
   // --- DATE BLOCKS MANAGEMENT ---
@@ -779,16 +849,49 @@ export default function App() {
               {/* Drag & Drop uploader area for this active block */}
               <div
                 onClick={() => handleBlockUploadClick(activeBlock.id)}
-                className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-white hover:bg-indigo-50/20 rounded-xl p-4 text-center cursor-pointer transition-all group flex flex-col items-center gap-1.5"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingSidebar(true);
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingSidebar(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setIsDraggingSidebar(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDraggingSidebar(false);
+                  const files = extractImageFiles(e);
+                  if (files.length > 0) {
+                    processAndAddFilesToBlock(files, activeBlock.id);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all group flex flex-col items-center gap-1.5 ${
+                  isDraggingSidebar
+                    ? "border-indigo-600 bg-indigo-50/90 scale-[1.02] shadow-sm ring-2 ring-indigo-400"
+                    : "border-indigo-200 hover:border-indigo-500 bg-white hover:bg-indigo-50/20"
+                }`}
               >
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-105 transition-all">
+                <div className={`p-2 rounded-lg transition-all ${
+                  isDraggingSidebar
+                    ? "bg-indigo-600 text-white animate-bounce"
+                    : "bg-indigo-50 text-indigo-600 group-hover:scale-105"
+                }`}>
                   <Camera className="w-5 h-5 stroke-2" />
                 </div>
                 <p className="text-xs font-bold text-gray-700">
-                  Subir fotos para {activeBlock.fecha}
+                  {isDraggingSidebar ? "¡Soltar fotos aquí!" : `Subir fotos para ${activeBlock.fecha}`}
                 </p>
                 <p className="text-[10px] text-gray-400">
-                  Arrastre aquí o haga clic para seleccionar
+                  Arrastre y suelte fotos aquí o haga clic para examinar
                 </p>
               </div>
 
@@ -928,15 +1031,46 @@ export default function App() {
           {/* B. Preview Screens */}
           <div className="flex-1 min-h-[500px]">
             {totalImagesCount === 0 ? (
-              /* Empty Placeholder display state */
-              <div className="no-print bg-white rounded-xl shadow-xs border border-gray-100 p-12 text-center h-full flex flex-col items-center justify-center gap-4">
-                <div className="p-4 bg-indigo-50 text-indigo-600 rounded-full animate-pulse">
-                  <Camera className="w-10 h-10 stroke-1.5" />
+              /* Empty Placeholder display state with Drag & Drop support */
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingEmpty(true);
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setIsDraggingEmpty(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setIsDraggingEmpty(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingEmpty(false);
+                  const files = extractImageFiles(e);
+                  if (files.length > 0) {
+                    processAndAddFilesToBlock(files, activeBlock.id);
+                  }
+                }}
+                className={`no-print bg-white rounded-xl shadow-xs border p-12 text-center h-full flex flex-col items-center justify-center gap-4 transition-all ${
+                  isDraggingEmpty
+                    ? "border-2 border-dashed border-indigo-600 bg-indigo-50/50 ring-4 ring-indigo-200 scale-[1.01]"
+                    : "border-gray-100"
+                }`}
+              >
+                <div className={`p-4 rounded-full transition-all ${
+                  isDraggingEmpty ? "bg-indigo-600 text-white animate-bounce" : "bg-indigo-50 text-indigo-600 animate-pulse"
+                }`}>
+                  {isDraggingEmpty ? <Upload className="w-10 h-10 stroke-2" /> : <Camera className="w-10 h-10 stroke-1.5" />}
                 </div>
                 <div className="space-y-1.5 max-w-sm">
-                  <h3 className="font-bold text-gray-800 text-base">Cargue sus fotos para empezar</h3>
+                  <h3 className="font-bold text-gray-800 text-base">
+                    {isDraggingEmpty ? "¡Suelte las fotos aquí para iniciar el reporte!" : "Cargue o arrastre sus fotos para empezar"}
+                  </h3>
                   <p className="text-gray-500 text-xs leading-relaxed font-medium">
-                    Organice sus fotos por fechas o jornadas de trabajo. Cada fecha se acomodará en su propia sección de páginas.
+                    Arrastre sus fotos directamente sobre la pantalla o elija una fecha para organizarlas en cuadrículas 2x2.
                   </p>
                 </div>
                 <button
@@ -1024,15 +1158,46 @@ export default function App() {
                       </div>
 
                       {/* Images Grid for this Date Block */}
-                      <div className="p-4">
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverBlockId(block.id);
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          setDragOverBlockId(block.id);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                          setDragOverBlockId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverBlockId(null);
+                          const files = extractImageFiles(e);
+                          if (files.length > 0) {
+                            processAndAddFilesToBlock(files, block.id);
+                          }
+                        }}
+                        className={`p-4 transition-all ${
+                          dragOverBlockId === block.id ? "bg-indigo-50/50 ring-2 ring-indigo-400 rounded-b-xl" : ""
+                        }`}
+                      >
                         {block.images.length === 0 ? (
                           <div
                             onClick={() => handleBlockUploadClick(block.id)}
-                            className="border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/10 rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-2 text-gray-400 hover:text-indigo-600"
+                            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-2 ${
+                              dragOverBlockId === block.id
+                                ? "border-indigo-600 bg-indigo-100/50 text-indigo-700"
+                                : "border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/10 text-gray-400 hover:text-indigo-600"
+                            }`}
                           >
                             <Plus className="w-8 h-8 stroke-1.5" />
                             <span className="text-xs font-semibold">
-                              No hay fotos en esta fecha. Haga clic para agregar imágenes.
+                              {dragOverBlockId === block.id
+                                ? "¡Soltar fotos para añadir a esta fecha!"
+                                : "No hay fotos en esta fecha. Arrastre aquí o haga clic para agregar imágenes."}
                             </span>
                           </div>
                         ) : (
@@ -1145,6 +1310,8 @@ export default function App() {
                         onCellImageDelete={handleDeleteImage}
                         onCellUploadClick={handleCellUploadClick}
                         onCellImagePaste={handleInsertImageAtCell}
+                        onCellImageDrop={handleInsertFilesAtCell}
+                        onPageDrop={handleDropFilesOnPage}
                         onUpdateCoverImage={handleUpdateCoverImage}
                       />
                     </div>
@@ -1180,6 +1347,8 @@ export default function App() {
               onCellImageDelete={handleDeleteImage}
               onCellUploadClick={handleCellUploadClick}
               onCellImagePaste={handleInsertImageAtCell}
+              onCellImageDrop={handleInsertFilesAtCell}
+              onPageDrop={handleDropFilesOnPage}
             />
           );
         })}

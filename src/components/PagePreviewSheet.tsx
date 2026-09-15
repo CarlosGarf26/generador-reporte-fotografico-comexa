@@ -1,8 +1,21 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { ReportMetadata, ReportFooter, ReportImage, PageConfig } from "../types";
 import { ComexaLogo, SantanderLogo, CitiLogo, ComexaWatermark } from "./Logos";
 import { RotateCw, Trash2, Maximize2, Minimize2, Upload, Video, Image as ImageIcon } from "lucide-react";
 import { CsisCoverBanner } from "./CsisCoverBanner";
+
+const extractImageFiles = (e: React.DragEvent): File[] => {
+  const files: File[] = [];
+  if (e.dataTransfer && e.dataTransfer.files) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const file = e.dataTransfer.files[i];
+      if (file.type.startsWith("image/") || /\.(jpe?g|png|webp|bmp|gif|tiff?)$/i.test(file.name)) {
+        files.push(file);
+      }
+    }
+  }
+  return files;
+};
 
 interface PagePreviewSheetProps {
   pageIndex: number;
@@ -17,6 +30,8 @@ interface PagePreviewSheetProps {
   onCellImageDelete: (imageId: string) => void;
   onCellUploadClick: (pageIdx: number, slotIdx: number) => void;
   onCellImagePaste?: (file: File, pageIndex: number, slotIdx: number) => void;
+  onCellImageDrop?: (files: File[], pageIndex: number, slotIdx: number) => void;
+  onPageDrop?: (files: File[], pageIndex: number) => void;
   onUpdateCoverImage?: (url: string) => void;
 }
 
@@ -33,9 +48,68 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
   onCellImageDelete,
   onCellUploadClick,
   onCellImagePaste,
+  onCellImageDrop,
+  onPageDrop,
   onUpdateCoverImage,
 }) => {
   const isVideoReport = metadata.reportType === "extraccion_video";
+  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
+  const [isDraggingPage, setIsDraggingPage] = useState(false);
+
+  const handleCellDragOver = (e: React.DragEvent, slotIdx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverSlot !== slotIdx) {
+      setDragOverSlot(slotIdx);
+    }
+  };
+
+  const handleCellDragLeave = (e: React.DragEvent, slotIdx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    if (dragOverSlot === slotIdx) {
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleCellDrop = (e: React.DragEvent, slotIdx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSlot(null);
+    setIsDraggingPage(false);
+    const files = extractImageFiles(e);
+    if (files.length > 0) {
+      if (onCellImageDrop) {
+        onCellImageDrop(files, pageIndex, slotIdx);
+      } else if (onCellImagePaste) {
+        onCellImagePaste(files[0], pageIndex, slotIdx);
+      }
+    }
+  };
+
+  const handlePageDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingPage(true);
+  };
+
+  const handlePageDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingPage(false);
+  };
+
+  const handlePageDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingPage(false);
+    setDragOverSlot(null);
+    const files = extractImageFiles(e);
+    if (files.length > 0) {
+      if (onPageDrop) {
+        onPageDrop(files, pageIndex);
+      }
+    }
+  };
 
   const handlePaste = (e: React.ClipboardEvent, slotIdx: number) => {
     if (!onCellImagePaste) return;
@@ -196,8 +270,22 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                   tabIndex={0}
                   onPaste={(e) => handlePaste(e, slotIdx)}
                   onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
-                  className="relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+                  onDragOver={(e) => handleCellDragOver(e, slotIdx)}
+                  onDragEnter={(e) => handleCellDragOver(e, slotIdx)}
+                  onDragLeave={(e) => handleCellDragLeave(e, slotIdx)}
+                  onDrop={(e) => handleCellDrop(e, slotIdx)}
+                  className={`relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all ${
+                    dragOverSlot === slotIdx ? "ring-3 ring-sky-600 bg-sky-50" : ""
+                  }`}
                 >
+                  {dragOverSlot === slotIdx && (
+                    <div className="no-print absolute inset-0 z-30 bg-sky-600/90 text-white flex flex-col items-center justify-center gap-1.5 p-2 text-center pointer-events-none">
+                      <Upload className="w-7 h-7 stroke-2 animate-bounce" />
+                      <span className="text-xs font-bold leading-tight">Soltar foto aquí</span>
+                      <span className="text-[9px] text-sky-100">Celda {slotIdx + 1}</span>
+                    </div>
+                  )}
+
                   {hasImage ? (
                     <>
                       <img
@@ -250,11 +338,11 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => onCellUploadClick(pageIndex, slotIdx)}
-                      className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full"
+                      className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full p-2 text-center"
                     >
                       <Upload className="w-6 h-6 stroke-1.5" />
-                      <span className="text-[10px] font-bold">Clic para insertar foto</span>
-                      <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
+                      <span className="text-[10px] font-bold">Arrastre o clic para insertar foto</span>
+                      <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V</span>
                     </button>
                   )}
                   <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
@@ -280,14 +368,20 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
   const cells = [0, 1, 2, 3]; // 2x2 grid slots
 
   return (
-    <div className="bg-white border border-gray-300 shadow-lg mx-auto print-page flex flex-col justify-between overflow-hidden relative"
-         style={{
-           width: "215.9mm",
-           height: "279.4mm",
-           padding: "10mm",
-           boxSizing: "border-box",
-         }}
-         id={`report-page-${pageIndex}`}
+    <div
+      className={`bg-white border shadow-lg mx-auto print-page flex flex-col justify-between overflow-hidden relative transition-all ${
+        isDraggingPage ? "border-indigo-500 ring-2 ring-indigo-400/50" : "border-gray-300"
+      }`}
+      style={{
+        width: "215.9mm",
+        height: "279.4mm",
+        padding: "10mm",
+        boxSizing: "border-box",
+      }}
+      id={`report-page-${pageIndex}`}
+      onDragOver={handlePageDragOver}
+      onDragLeave={handlePageDragLeave}
+      onDrop={handlePageDrop}
     >
       {/* 1. HEADER (Black Bar) */}
       <div className="bg-black text-white px-3 py-1.5 grid grid-cols-[1fr_auto_1fr] items-center h-[52px] rounded-xs select-none overflow-hidden">
@@ -360,8 +454,22 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
               tabIndex={0}
               onPaste={(e) => handlePaste(e, slotIdx)}
               onKeyDown={(e) => handleKeyDown(e, slotIdx, hasImage)}
-              className={`relative flex items-center justify-center border border-black overflow-hidden bg-white/10 group/cell z-10 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all`}
+              onDragOver={(e) => handleCellDragOver(e, slotIdx)}
+              onDragEnter={(e) => handleCellDragOver(e, slotIdx)}
+              onDragLeave={(e) => handleCellDragLeave(e, slotIdx)}
+              onDrop={(e) => handleCellDrop(e, slotIdx)}
+              className={`relative flex items-center justify-center border border-black overflow-hidden bg-white/10 group/cell z-10 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all ${
+                dragOverSlot === slotIdx ? "ring-4 ring-indigo-600 bg-indigo-50" : ""
+              }`}
             >
+              {dragOverSlot === slotIdx && (
+                <div className="no-print absolute inset-0 z-30 bg-indigo-600/90 text-white flex flex-col items-center justify-center gap-1.5 p-2 text-center pointer-events-none animate-in fade-in duration-100">
+                  <Upload className="w-8 h-8 stroke-2 animate-bounce" />
+                  <span className="text-xs font-bold leading-tight">Soltar foto aquí</span>
+                  <span className="text-[10px] text-indigo-100">Se colocará en Celda {slotIdx + 1}</span>
+                </div>
+              )}
+
               {hasImage ? (
                 <>
                   {/* Real Image Render */}
@@ -423,11 +531,11 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                 <button
                   type="button"
                   onClick={() => onCellUploadClick(pageIndex, slotIdx)}
-                  className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-50/50 transition-colors cursor-pointer w-full h-full"
+                  className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-50/50 transition-colors cursor-pointer w-full h-full p-2 text-center"
                 >
                   <Upload className="w-6 h-6 stroke-1.5" />
-                  <span className="text-[10px] font-semibold">Clic para insertar foto</span>
-                  <span className="text-[8px] text-gray-400">Slot {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
+                  <span className="text-[10px] font-semibold">Arrastre o clic para insertar foto</span>
+                  <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V para pegar</span>
                 </button>
               )}
 
