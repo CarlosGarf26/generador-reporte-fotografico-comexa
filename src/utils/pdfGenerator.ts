@@ -486,26 +486,6 @@ export const generateReportPDF = async (
     const cellWidth = contentWidth / 2; // 195.9 / 2 = 97.95mm
     const cellHeight = gridHeight / 2; // 202 / 2 = 101mm
 
-    // Draw grid border & dividing lines
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
-    // Outer border
-    doc.rect(marginX, gridStartY, contentWidth, gridHeight);
-    // Horizontal divider
-    doc.line(
-      marginX,
-      gridStartY + cellHeight,
-      marginX + contentWidth,
-      gridStartY + cellHeight
-    );
-    // Vertical divider
-    doc.line(
-      marginX + cellWidth,
-      gridStartY,
-      marginX + cellWidth,
-      gridStartY + gridHeight
-    );
-
     // Draw Watermark inside grid background
     if (comexaLogoPng) {
       doc.saveGraphicsState();
@@ -522,7 +502,7 @@ export const generateReportPDF = async (
       doc.restoreGraphicsState();
     }
 
-    // Process and draw the up to 4 images
+    // Process and draw the up to 4 images (only draw borders for cells that have an image)
     for (let imgIdx = 0; imgIdx < 4; imgIdx++) {
       const image = page.images[imgIdx];
       if (!image) continue;
@@ -532,6 +512,11 @@ export const generateReportPDF = async (
       const col = imgIdx % 2;
       const cellX = marginX + col * cellWidth;
       const cellY = gridStartY + row * cellHeight;
+
+      // Draw black border strictly around the quadrant with an image
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.4);
+      doc.rect(cellX, cellY, cellWidth, cellHeight);
 
       const targetPixelW = 800;
       const targetPixelH = Math.round(800 * (cellHeight / cellWidth));

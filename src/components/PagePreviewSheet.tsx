@@ -274,8 +274,12 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                   onDragEnter={(e) => handleCellDragOver(e, slotIdx)}
                   onDragLeave={(e) => handleCellDragLeave(e, slotIdx)}
                   onDrop={(e) => handleCellDrop(e, slotIdx)}
-                  className={`relative border border-slate-300 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group/cell h-full shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all ${
-                    dragOverSlot === slotIdx ? "ring-3 ring-sky-600 bg-sky-50" : ""
+                  className={`relative overflow-hidden flex items-center justify-center group/cell h-full transition-all ${
+                    hasImage
+                      ? "border border-slate-300 rounded-xl bg-slate-50 shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      : "border border-transparent hover:border-dashed hover:border-sky-300 rounded-xl bg-transparent hover:bg-sky-50/30 print:hidden print:border-none print:opacity-0"
+                  } ${
+                    dragOverSlot === slotIdx ? "ring-3 ring-sky-600 bg-sky-50 !border-sky-600" : ""
                   }`}
                 >
                   {dragOverSlot === slotIdx && (
@@ -338,14 +342,16 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => onCellUploadClick(pageIndex, slotIdx)}
-                      className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50/30 transition-all cursor-pointer w-full h-full p-2 text-center"
+                      className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-sky-600 transition-all cursor-pointer w-full h-full p-2 text-center opacity-0 group-hover/cell:opacity-100"
                     >
                       <Upload className="w-6 h-6 stroke-1.5" />
                       <span className="text-[10px] font-bold">Arrastre o clic para insertar foto</span>
                       <span className="text-[8px] text-gray-400">Celda {slotIdx + 1} de la Pág. {pageIndex + 1} • Ctrl+V</span>
                     </button>
                   )}
-                  <span className="no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
+                  <span className={`no-print absolute top-2 left-2 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none ${
+                    hasImage ? "" : "opacity-0 group-hover/cell:opacity-100"
+                  }`}>
                     Celda {slotIdx + 1}
                   </span>
                 </div>
@@ -436,7 +442,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
       </div>
 
       {/* 4. MAIN IMAGE GRID (2x2) */}
-      <div className="relative border border-black flex-1 grid grid-cols-2 grid-rows-2 overflow-hidden bg-white"
+      <div className="relative flex-1 grid grid-cols-2 grid-rows-2 overflow-hidden bg-white"
            style={{ maxHeight: "202mm" }}
       >
         {/* Subtle Background Watermark */}
@@ -458,8 +464,12 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
               onDragEnter={(e) => handleCellDragOver(e, slotIdx)}
               onDragLeave={(e) => handleCellDragLeave(e, slotIdx)}
               onDrop={(e) => handleCellDrop(e, slotIdx)}
-              className={`relative flex items-center justify-center border border-black overflow-hidden bg-white/10 group/cell z-10 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all ${
-                dragOverSlot === slotIdx ? "ring-4 ring-indigo-600 bg-indigo-50" : ""
+              className={`relative flex items-center justify-center overflow-hidden transition-all ${
+                hasImage
+                  ? "border border-black bg-white group/cell z-10 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  : "border border-transparent hover:border-dashed hover:border-indigo-300 bg-transparent hover:bg-indigo-50/20 group/cell print:hidden print:border-none print:opacity-0"
+              } ${
+                dragOverSlot === slotIdx ? "ring-4 ring-indigo-600 bg-indigo-50 !border-indigo-600" : ""
               }`}
             >
               {dragOverSlot === slotIdx && (
@@ -531,7 +541,7 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
                 <button
                   type="button"
                   onClick={() => onCellUploadClick(pageIndex, slotIdx)}
-                  className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-50/50 transition-colors cursor-pointer w-full h-full p-2 text-center"
+                  className="no-print absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-indigo-600 transition-all cursor-pointer w-full h-full p-2 text-center opacity-0 group-hover/cell:opacity-100"
                 >
                   <Upload className="w-6 h-6 stroke-1.5" />
                   <span className="text-[10px] font-semibold">Arrastre o clic para insertar foto</span>
@@ -540,7 +550,9 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
               )}
 
               {/* Slot Index Label (Top-Left, Hidden in Print) */}
-              <span className="no-print absolute top-1.5 left-1.5 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none">
+              <span className={`no-print absolute top-1.5 left-1.5 text-[8px] font-mono bg-gray-900/60 text-white font-bold px-1 rounded select-none ${
+                hasImage ? "" : "opacity-0 group-hover/cell:opacity-100"
+              }`}>
                 Celda {slotIdx + 1}
               </span>
             </div>
