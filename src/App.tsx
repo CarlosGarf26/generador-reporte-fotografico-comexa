@@ -93,6 +93,7 @@ export default function App() {
     tipoTrabajo: "MANTENIMIENTO",
     incidenteTask: "SCTASK0000883852 / REQ0000894862",
     tecnicoAtiende: "ERICK GABRIEL PEREZ ESPINOZA",
+    showSantanderLogo: true,
   });
 
   const [footer, setFooter] = useState<ReportFooter>({

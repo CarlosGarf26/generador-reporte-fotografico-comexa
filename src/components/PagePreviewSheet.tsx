@@ -404,8 +404,10 @@ export const PagePreviewSheet: React.FC<PagePreviewSheetProps> = ({
         </div>
 
         {/* Right Side: Santander logo (Aligned Right with safety padding) */}
-        <div className="flex items-center justify-end pr-2">
-          <SantanderLogo className="h-6 sm:h-7" />
+        <div className="flex items-center justify-end pr-2 min-w-[20px]">
+          {metadata.showSantanderLogo !== false && (
+            <SantanderLogo className="h-6 sm:h-7" />
+          )}
         </div>
       </div>
 

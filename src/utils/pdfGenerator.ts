@@ -420,25 +420,27 @@ export const generateReportPDF = async (
       align: "center",
     });
 
-    // Right Side: Santander logo (Safely within right margin)
-    const santanderRightPadding = 4;
-    const santanderTotalWidth = 26; // 6mm logo + 2mm gap + ~18mm text
-    const santanderStartX = marginX + contentWidth - santanderTotalWidth - santanderRightPadding;
+    // Right Side: Santander logo (Safely within right margin) - only if enabled
+    if (metadata.showSantanderLogo !== false) {
+      const santanderRightPadding = 4;
+      const santanderTotalWidth = 26; // 6mm logo + 2mm gap + ~18mm text
+      const santanderStartX = marginX + contentWidth - santanderTotalWidth - santanderRightPadding;
 
-    if (santanderLogoPng) {
-      doc.addImage(
-        santanderLogoPng,
-        "PNG",
-        santanderStartX,
-        headerY + 4,
-        6.5,
-        6.5
-      );
+      if (santanderLogoPng) {
+        doc.addImage(
+          santanderLogoPng,
+          "PNG",
+          santanderStartX,
+          headerY + 4,
+          6.5,
+          6.5
+        );
+      }
+      doc.setTextColor(236, 0, 0); // Authentic Red for Santander
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Santander", santanderStartX + 8, headerY + 9.5);
     }
-    doc.setTextColor(236, 0, 0); // Authentic Red for Santander
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Santander", santanderStartX + 8, headerY + 9.5);
 
     // --- 2. METADATA SECTION ---
     const metaY = headerY + headerHeight + 5;

@@ -10,6 +10,7 @@ export interface ReportMetadata {
   incidenteTask?: string;
   tecnicoAtiende?: string;
   coverImageUrl?: string;
+  showSantanderLogo?: boolean;
 }
 
 export interface ReportFooter {
